@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSE Test</title>
+</head>
+<body>
+    <h1>Live Market Data Stream</h1>
+    <div id="messages" style="font-family: monospace; white-space: pre-wrap;"></div>
+
+    <script>
+        const evtSource = new EventSource("http://localhost:8000/api/v1/stream/live");
+        const messagesDiv = document.getElementById("messages");
+
+        evtSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            console.log(data);
+            messagesDiv.innerHTML = JSON.stringify(data, null, 2) + "\n" + messagesDiv.innerHTML;
+        };
+
+        evtSource.onerror = function(err) {
+            console.error("EventSource failed:", err);
+        };
+    </script>
+</body>
+</html>
