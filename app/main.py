@@ -46,6 +46,9 @@ app.include_router(feed_router, prefix=settings.API_V1_STR)
 from app.api.stream import router as stream_router
 app.include_router(stream_router, prefix=settings.API_V1_STR)
 
+from app.api.instrument import router as instrument_router
+app.include_router(instrument_router, prefix=settings.API_V1_STR)
+
 @app.get("/callback")
 async def callback(code: str):
     from app.services.upstox_auth import UpstoxAuthService
