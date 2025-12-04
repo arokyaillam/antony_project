@@ -23,7 +23,7 @@ async def event_generator():
                 if not streams:
                     # Send a keep-alive comment to prevent timeout
                     yield ": keep-alive\n\n"
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(1)
                     continue
 
                 for stream_name, messages in streams:
