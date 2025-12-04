@@ -89,7 +89,8 @@ class FeedService:
             }
         }
         
-        await cls._websocket.send(json.dumps(payload))
+        # Send as binary (UTF-8 encoded) as per Upstox requirements
+        await cls._websocket.send(json.dumps(payload).encode('utf-8'))
         cls._subscriptions.update(new_keys)
         return {"message": f"Subscribed to {len(new_keys)} new instruments in {mode} mode"}
 
@@ -106,7 +107,8 @@ class FeedService:
             }
         }
         
-        await cls._websocket.send(json.dumps(payload))
+        # Send as binary (UTF-8 encoded)
+        await cls._websocket.send(json.dumps(payload).encode('utf-8'))
         cls._subscriptions.difference_update(instrument_keys)
         return {"message": f"Unsubscribed from {len(instrument_keys)} instruments"}
 
@@ -157,7 +159,15 @@ class FeedService:
                         
                         # Publish to Redis
                         if data_dict:
-                            print("DEBUG: Publishing to Redis")
+                            msg_type = data_dict.get('type')
+                            feeds = data_dict.get('feeds', {})
+                            print(f"DEBUG: Decoded Message Type: {msg_type}")
+                            if feeds:
+                                print(f"DEBUG: Received updates for {len(feeds)} instruments: {list(feeds.keys())}")
+                            else:
+                                print("DEBUG: No feeds in message")
+                                
+                            print("DEBUG: Publishing to Redis stream 'market_feed'")
                             await redis_client.xadd("market_feed", {"data": json.dumps(data_dict)})
                         
                     except Exception as e:
