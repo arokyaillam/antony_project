@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    # To use the image from Docker Hub, comment out 'build: .' and uncomment 'image: ...'
+    # image: your_username/antony-hft-app:latest
+    container_name: antony_app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_SERVER=db
+    depends_on:
+      - redis
+      - db
+    restart: always
+
+  redis:
+    image: redis:8.2
+    container_name: antony_redis
+    ports:
+      - "6379:6379"
+    restart: always
+    volumes:
+      - redis_data:/data
+
+  db:
+    image: postgres:18.1
+    container_name: antony_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-upgrade_upstox}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:
