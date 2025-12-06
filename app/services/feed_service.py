@@ -1,6 +1,15 @@
+"""
+Feed Service - Upstox WebSocket Market Data
+=============================================
+
+Upstox API V3 WebSocket connection and subscription management.
+Real-time market data ingestion to Redis.
+"""
+
 import asyncio
 import json
 import ssl
+import logging
 import websockets
 import uuid
 from typing import List, Literal
@@ -8,14 +17,16 @@ from app.core.config import settings
 from app.services.upstox_auth import UpstoxAuthService
 from app.db.redis import RedisClient
 
+logger = logging.getLogger(__name__)
+
+
 class FeedService:
     _websocket = None
     _is_running = False
     _task = None
     _subscriptions = set()
     
-    # Protected keys - இவை எப்போதும் subscribed-ஆ இருக்கும், unsubscribe ஆகாது
-    # Index keys are always protected from unsubscription
+    # Protected keys - Index keys are always subscribed
     _protected_keys = {
         "NSE_INDEX|Nifty 50",
         "NSE_INDEX|Nifty Bank",
@@ -30,8 +41,6 @@ class FeedService:
         
         access_token = creds['access_token']
         
-        # Get authorized URL via API
-        # Updated to V3 endpoint as per error UDAPI1153
         import httpx
         async with httpx.AsyncClient() as client:
             response = await client.get(
@@ -81,13 +90,11 @@ class FeedService:
         if not cls._websocket or not cls._is_running:
             raise RuntimeError("WebSocket is not connected. Call /connect first.")
         
-        # Filter out already subscribed keys
         new_keys = [key for key in instrument_keys if key not in cls._subscriptions]
         
         if not new_keys:
             return {"message": "All instruments are already subscribed"}
         
-        # Construct subscription message
         payload = {
             "guid": str(uuid.uuid4()),
             "method": "sub",
@@ -97,7 +104,6 @@ class FeedService:
             }
         }
         
-        # Send as binary (UTF-8 encoded) as per Upstox requirements
         await cls._websocket.send(json.dumps(payload).encode('utf-8'))
         cls._subscriptions.update(new_keys)
         return {"message": f"Subscribed to {len(new_keys)} new instruments in {mode} mode"}
@@ -115,7 +121,6 @@ class FeedService:
             }
         }
         
-        # Send as binary (UTF-8 encoded)
         await cls._websocket.send(json.dumps(payload).encode('utf-8'))
         cls._subscriptions.difference_update(instrument_keys)
         return {"message": f"Unsubscribed from {len(instrument_keys)} instruments"}
@@ -131,14 +136,9 @@ class FeedService:
         mode: Literal["full", "full_d30", "ltpc"] = "full"
     ) -> dict:
         """
-        Dynamic subscription management: 
-        - Subscribe to new keys that aren't currently subscribed
-        - Unsubscribe from old keys that are no longer in the new list
-        - PROTECTED: Index keys are never unsubscribed
-        
-        புதிய option keys வந்தா subscribe பண்ணும், 
-        பழைய keys இல்லன்னா unsubscribe பண்ணும்.
-        Index keys எப்போதும் protected - அவை unsubscribe ஆகாது!
+        Dynamic subscription management:
+        - Subscribe to new keys
+        - Unsubscribe from old keys (except protected index keys)
         """
         if not cls._websocket or not cls._is_running:
             raise RuntimeError("WebSocket is not connected. Call /connect first.")
@@ -146,26 +146,17 @@ class FeedService:
         new_keys_set = set(new_instrument_keys)
         current_keys = cls._subscriptions
         
-        # DEBUG: Log current state
-        print(f"DEBUG update_subscriptions:")
-        print(f"  - Current subscriptions ({len(current_keys)}): {list(current_keys)}")
-        print(f"  - New keys requested ({len(new_keys_set)}): {list(new_keys_set)}")
-        
-        # Keys to subscribe (in new but not in current)
         keys_to_subscribe = new_keys_set - current_keys
-        
-        # Keys to unsubscribe (in current but not in new)
-        # IMPORTANT: Exclude protected keys (Index keys) from unsubscription
         keys_to_unsubscribe = (current_keys - new_keys_set) - cls._protected_keys
         
         result = {
             "subscribed": [],
             "unsubscribed": [],
             "already_subscribed": list(new_keys_set & current_keys),
-            "protected_keys": list(cls._protected_keys & current_keys)  # Show which keys are protected
+            "protected_keys": list(cls._protected_keys & current_keys)
         }
         
-        # Unsubscribe from old option keys first (NOT index keys)
+        # Unsubscribe from old option keys
         if keys_to_unsubscribe:
             unsub_payload = {
                 "guid": str(uuid.uuid4()),
@@ -177,7 +168,6 @@ class FeedService:
             await cls._websocket.send(json.dumps(unsub_payload).encode('utf-8'))
             cls._subscriptions.difference_update(keys_to_unsubscribe)
             result["unsubscribed"] = list(keys_to_unsubscribe)
-            print(f"Unsubscribed from {len(keys_to_unsubscribe)} instruments: {list(keys_to_unsubscribe)}")
         
         # Subscribe to new keys
         if keys_to_subscribe:
@@ -192,7 +182,6 @@ class FeedService:
             await cls._websocket.send(json.dumps(sub_payload).encode('utf-8'))
             cls._subscriptions.update(keys_to_subscribe)
             result["subscribed"] = list(keys_to_subscribe)
-            print(f"Subscribed to {len(keys_to_subscribe)} instruments in {mode} mode: {list(keys_to_subscribe)}")
         
         result["current_subscriptions"] = list(cls._subscriptions)
         result["total_count"] = len(cls._subscriptions)
@@ -204,19 +193,19 @@ class FeedService:
         redis_client = RedisClient.get_pool()
         ssl_context = ssl.create_default_context()
         
-        # Try to import Protobuf (User must place the file in app/proto/)
+        # Import Protobuf
         try:
             from app.proto import MarketDataFeedV3_pb2 as MarketDataFeed_pb2
             from google.protobuf.json_format import MessageToDict
             HAS_PROTOBUF = True
         except ImportError:
             HAS_PROTOBUF = False
-            print("Warning: MarketDataFeedV3_pb2 not found. Protobuf decoding disabled.")
+            logger.warning("MarketDataFeedV3_pb2 not found. Protobuf decoding disabled.")
         
         try:
             async with websockets.connect(ws_url, ssl=ssl_context) as websocket:
                 cls._websocket = websocket
-                print("WebSocket Connected")
+                logger.info("WebSocket Connected")
                 
                 async for message in websocket:
                     if not cls._is_running:
@@ -226,39 +215,24 @@ class FeedService:
                         data_dict = {}
                         
                         if isinstance(message, bytes):
-                            print(f"DEBUG: Received {len(message)} bytes")
-                            # Binary -> Protobuf
                             if HAS_PROTOBUF:
                                 feed_response = MarketDataFeed_pb2.FeedResponse()
                                 feed_response.ParseFromString(message)
                                 data_dict = MessageToDict(feed_response)
                             else:
-                                print("Received binary data but Protobuf module missing.")
                                 continue
                         else:
-                            print(f"DEBUG: Received JSON: {message[:50]}...")
-                            # Text -> JSON
                             data_dict = json.loads(message)
                         
-                        # Publish to Redis
                         if data_dict:
-                            msg_type = data_dict.get('type')
-                            feeds = data_dict.get('feeds', {})
-                            print(f"DEBUG: Decoded Message Type: {msg_type}")
-                            if feeds:
-                                print(f"DEBUG: Received updates for {len(feeds)} instruments: {list(feeds.keys())}")
-                            else:
-                                print("DEBUG: No feeds in message")
-                                
-                            print("DEBUG: Publishing to Redis stream 'market_feed'")
                             await redis_client.xadd("market_feed", {"data": json.dumps(data_dict)})
                         
                     except Exception as e:
-                        print(f"Error processing message: {e}")
+                        logger.error(f"Error processing message: {e}")
                         
         except Exception as e:
-            print(f"WebSocket connection error: {e}")
+            logger.error(f"WebSocket connection error: {e}")
         finally:
             cls._is_running = False
             cls._websocket = None
-            print("WebSocket Disconnected")
+            logger.info("WebSocket Disconnected")
