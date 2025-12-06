@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>1-Minute Candle SSE Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        h1 { color: #0ff; }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .connected { background: #0a3; }
+        .disconnected { background: #a30; }
+        .candle {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .candle-header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #0f3460;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        .instrument { color: #0ff; font-weight: bold; font-size: 18px; }
+        .timestamp { color: #888; }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .metric {
+            background: #0f3460;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .metric-label { color: #888; font-size: 12px; }
+        .metric-value { font-size: 16px; color: #fff; }
+        .positive { color: #0f9; }
+        .negative { color: #f55; }
+        .walls {
+            margin-top: 10px;
+            padding: 10px;
+            background: #0a0a1a;
+            border-radius: 5px;
+        }
+        .wall-title { color: #f80; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🕯️ 1-Minute Candle Stream</h1>
+    <div id="status" class="status disconnected">Connecting...</div>
+    <div id="candles"></div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const candlesDiv = document.getElementById('candles');
+        
+        // Connect to SSE endpoint
+        const source = new EventSource('http://localhost:8000/api/v1/stream/candles');
+        
+        source.onopen = () => {
+            statusDiv.textContent = '✅ Connected - Waiting for candles...';
+            statusDiv.className = 'status connected';
+        };
+        
+        source.onerror = (e) => {
+            statusDiv.textContent = '❌ Disconnected - Retrying...';
+            statusDiv.className = 'status disconnected';
+        };
+        
+        // Listen for candle events
+        source.addEventListener('candle', (e) => {
+            const candle = JSON.parse(e.data);
+            renderCandle(candle);
+        });
+        
+        function renderCandle(c) {
+            const diffClass = c.price_diff >= 0 ? 'positive' : 'negative';
+            const diffSign = c.price_diff >= 0 ? '+' : '';
+            
+            const html = `
+                <div class="candle">
+                    <div class="candle-header">
+                        <span class="instrument">${c.instrument_key}</span>
+                        <span class="timestamp">${c.timestamp}</span>
+                    </div>
+                    <div class="metric-grid">
+                        <div class="metric">
+                            <div class="metric-label">OHLC</div>
+                            <div class="metric-value">${c.open}/${c.high}/${c.low}/${c.close}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Price Diff</div>
+                            <div class="metric-value ${diffClass}">${diffSign}${c.price_diff}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Spread</div>
+                            <div class="metric-value">${c.bid_ask?.spread || 0}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Delta</div>
+                            <div class="metric-value">${c.greeks?.delta?.toFixed(4) || 0}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">OI</div>
+                            <div class="metric-value">${c.oi?.toLocaleString() || 0}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">OI Diff</div>
+                            <div class="metric-value ${c.oi_diff >= 0 ? 'positive' : 'negative'}">${c.oi_diff}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Volume (1m)</div>
+                            <div class="metric-value">${c.volume_1m?.toLocaleString() || 0}</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">IV</div>
+                            <div class="metric-value">${(c.iv * 100).toFixed(2)}%</div>
+                        </div>
+                    </div>
+                    ${renderWalls(c.bid_ask)}
+                </div>
+            `;
+            
+            candlesDiv.insertAdjacentHTML('afterbegin', html);
+            
+            // Keep only last 20 candles
+            while (candlesDiv.children.length > 20) {
+                candlesDiv.lastChild.remove();
+            }
+        }
+        
+        function renderWalls(bidAsk) {
+            if (!bidAsk) return '';
+            
+            const bidWalls = bidAsk.bid_walls || [];
+            const askWalls = bidAsk.ask_walls || [];
+            
+            if (bidWalls.length === 0 && askWalls.length === 0) {
+                return '<div class="walls"><span style="color:#888">No walls detected</span></div>';
+            }
+            
+            let html = '<div class="walls">';
+            
+            if (bidWalls.length > 0) {
+                html += '<div class="wall-title">📗 Bid Walls (Support)</div>';
+                bidWalls.forEach(w => {
+                    html += `<span style="color:#0f9">${w.price} × ${w.qty}</span> &nbsp;`;
+                });
+            }
+            
+            if (askWalls.length > 0) {
+                html += '<div class="wall-title" style="margin-top:10px">📕 Ask Walls (Resistance)</div>';
+                askWalls.forEach(w => {
+                    html += `<span style="color:#f55">${w.price} × ${w.qty}</span> &nbsp;`;
+                });
+            }
+            
+            html += '</div>';
+            return html;
+        }
+    </script>
+</body>
+</html>
