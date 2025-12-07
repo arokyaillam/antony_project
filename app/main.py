@@ -62,12 +62,14 @@ from app.api.feed import router as feed_router
 from app.api.stream import router as stream_router
 from app.api.instrument import router as instrument_router
 from app.api.gtt import router as gtt_router
+from app.api.portfolio import router as portfolio_router
 
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(feed_router, prefix=settings.API_V1_STR)
 app.include_router(stream_router, prefix=settings.API_V1_STR)
 app.include_router(instrument_router, prefix=settings.API_V1_STR)
 app.include_router(gtt_router, prefix=settings.API_V1_STR)
+app.include_router(portfolio_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/callback")

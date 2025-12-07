@@ -97,6 +97,16 @@ GET /api/v1/stream/candles
 GET /api/v1/stream/candles?instruments=NSE_FO|61755,NSE_FO|61756
 ```
 
+### Portfolio
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/portfolio/funds` | Funds & Margin |
+| GET | `/api/v1/portfolio/positions` | Intraday Positions |
+| GET | `/api/v1/portfolio/holdings` | Delivery Holdings |
+| GET | `/api/v1/portfolio/trades` | Today's Trades |
+| GET | `/api/v1/portfolio/orders` | Order Book |
+| GET | `/api/v1/portfolio/orders/{id}` | Order Details |
+
 ### Health
 | Method | Endpoint | Description |
 |--------|----------|-------------|

@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     UPSTOX_REDIRECT_URI: str
     UPSTOX_ACCESS_TOKEN: str = ""
     
+    # Sandbox Mode - Real money இல்லாம testing
+    UPSTOX_SANDBOX_MODE: bool = False
+    UPSTOX_SANDBOX_TOKEN: str = ""
+    
     # Redis
     REDIS_URL: str
     
@@ -21,6 +25,14 @@ class Settings(BaseSettings):
     POSTGRES_PORT: str
     POSTGRES_DB: str
     
+    @property
+    def active_token(self) -> str:
+        """Get active token based on mode"""
+        if self.UPSTOX_SANDBOX_MODE:
+            return self.UPSTOX_SANDBOX_TOKEN
+        return self.UPSTOX_ACCESS_TOKEN
+    
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
 settings = Settings()
+
