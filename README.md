@@ -14,8 +14,9 @@ Antony HFT is a high-frequency algorithmic trading backend for the Indian Stock 
 | **1-Minute Candles** | OHLC + Greeks + OI + IV + Walls |
 | **SSE Streaming** | Live candle/order stream to frontend |
 | **GTT Orders** | Entry + Target + Stop-Loss + Trailing SL |
-| **Order Updates** | Real-time execution notifications |
-| **Instrument Filter** | Query param filtering for streams |
+| **Regular Orders** | Market/Limit/SL with multi-order |
+| **Sandbox Mode** | Testing without real money ⚡ |
+| **Portfolio APIs** | Funds, Positions, Trades, OrderBook |
 
 ## 🛠️ Tech Stack
 
@@ -80,6 +81,15 @@ antony_project/
 | DELETE | `/api/v1/gtt/cancel` | Cancel order |
 | GET | `/api/v1/gtt/{id}` | Get order details |
 | GET | `/api/v1/gtt/` | Get all orders |
+
+### Regular Orders (Sandbox Supported ⚡)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/order/mode` | Check sandbox/live mode |
+| POST | `/api/v1/order/place` | Place order |
+| PUT | `/api/v1/order/modify` | Modify order |
+| DELETE | `/api/v1/order/cancel/{id}` | Cancel order |
+| POST | `/api/v1/order/place-multi` | Place multiple orders |
 
 ### Streaming (SSE)
 | Method | Endpoint | Description |
@@ -157,6 +167,10 @@ UPSTOX_API_KEY=your_api_key
 UPSTOX_API_SECRET=your_secret
 UPSTOX_REDIRECT_URI=http://localhost:8000/callback
 UPSTOX_ACCESS_TOKEN=
+
+# Sandbox Mode (Testing without real money)
+UPSTOX_SANDBOX_MODE=false
+UPSTOX_SANDBOX_TOKEN=
 
 REDIS_URL=redis://localhost:6379
 POSTGRES_USER=antony
