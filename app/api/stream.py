@@ -1,6 +1,7 @@
 import asyncio
 import json
-from fastapi import APIRouter
+from typing import Optional, Set
+from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 from app.db.redis import RedisClient
 from app.services.candle_aggregator import CandleAggregator, parse_raw_tick
@@ -57,12 +58,24 @@ async def sse_stream():
 # 1-MINUTE CANDLE SSE - Aggregated candles
 # ═══════════════════════════════════════════════════════════════════════════════
 
-async def candle_event_generator():
+async def candle_event_generator(instrument_filter: Optional[Set[str]] = None):
     """
     1-Minute Candle SSE Generator
     
     Reads ticks from Redis, aggregates into 1-minute candles,
     and emits completed candles at minute boundaries.
+    
+    Args:
+        instrument_filter: Optional set of instrument keys to include.
+                          If None, all instruments are processed.
+                          Example: {"NSE_FO|61755", "NSE_FO|61756"}
+    
+    Usage:
+        # எல்லா instruments
+        /api/v1/stream/candles
+        
+        # Specific instruments மட்டும்
+        /api/v1/stream/candles?instruments=NSE_FO|61755,NSE_FO|61756
     """
     redis = RedisClient.get_pool()
     last_id = "$"
@@ -94,6 +107,10 @@ async def candle_event_generator():
                             feeds = data.get("feeds", {})
                             
                             for instrument_key, feed_data in feeds.items():
+                                # 🔥 Filter: Skip if not in filter set
+                                if instrument_filter and instrument_key not in instrument_filter:
+                                    continue
+                                
                                 full_feed = feed_data.get("fullFeed", {})
                                 market_ff = full_feed.get("marketFF")
                                 
@@ -125,7 +142,12 @@ async def candle_event_generator():
 
 
 @router.get("/candles")
-async def sse_candle_stream():
+async def sse_candle_stream(
+    instruments: Optional[str] = Query(
+        None, 
+        description="Comma-separated instrument keys to filter. Example: NSE_FO|61755,NSE_FO|61756"
+    )
+):
     """
     1-Minute Candle SSE Endpoint
     
@@ -133,9 +155,29 @@ async def sse_candle_stream():
     - Price OHLC + diff
     - Bid/Ask walls (qty > 2000)
     - Spread, Greeks, ATP, VTT, OI, IV, TBQ, TSQ + diffs
+    
+    Query Parameters:
+        instruments: Comma-separated instrument keys (optional)
+            - If provided: Only streams candles for specified instruments
+            - If omitted: Streams candles for ALL instruments
+    
+    Examples:
+        # எல்லா instruments
+        GET /api/v1/stream/candles
+        
+        # Options மட்டும் (index தவிர)
+        GET /api/v1/stream/candles?instruments=NSE_FO|61755,NSE_FO|61756
+        
+        # ஒரே ஒரு instrument
+        GET /api/v1/stream/candles?instruments=NSE_FO|61755
     """
+    # Parse comma-separated instruments into a set
+    instrument_filter: Optional[Set[str]] = None
+    if instruments:
+        instrument_filter = set(instruments.split(","))
+    
     return StreamingResponse(
-        candle_event_generator(), 
+        candle_event_generator(instrument_filter), 
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
