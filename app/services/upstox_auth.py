@@ -22,6 +22,19 @@ class UpstoxAuthService:
         pool = PostgresClient.get_pool()
         async with pool.acquire() as conn:
             return await conn.fetchrow("SELECT * FROM credentials WHERE id = 1")
+    
+    @staticmethod
+    async def get_access_token() -> str:
+        """
+        Get access token from DB
+        
+        OAuth callback பண்ணின பிறகு DB-ல save ஆன token-ஐ return பண்ணும்.
+        எல்லா services-ம் இந்த method use பண்ணணும்.
+        """
+        creds = await UpstoxAuthService.get_credentials()
+        if not creds or not creds.get('access_token'):
+            raise ValueError("Access token not found. Please login first via /api/v1/auth/login")
+        return creds['access_token']
 
     @staticmethod
     async def get_login_url() -> str:
@@ -73,3 +86,4 @@ class UpstoxAuthService:
             return access_token
         except Exception as e:
             raise RuntimeError(f"Failed to generate token: {e}")
+

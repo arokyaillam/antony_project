@@ -4,13 +4,14 @@ GTT Order Service - Upstox API v3 Integration
 
 Async service for GTT (Good Till Triggered) orders.
 Place, Modify, Cancel, and Get GTT orders.
+Token fetched from DB.
 
 Author: Antony HFT System
 """
 
 import httpx
 from typing import Optional
-from app.core.config import settings
+from app.services.upstox_auth import UpstoxAuthService
 from app.models.gtt import GTTPlaceRequest, GTTModifyRequest
 
 
@@ -19,7 +20,7 @@ class GTTService:
     GTT Order Service
     
     Upstox API v3 GTT endpoints wrapper.
-    Uses httpx for async HTTP calls.
+    Token is fetched from DB (not .env).
     
     Endpoints:
         POST   /v3/order/gtt/place  - Place new GTT order
@@ -31,16 +32,13 @@ class GTTService:
     BASE_URL = "https://api.upstox.com/v3/order/gtt"
     
     @staticmethod
-    def _get_headers() -> dict:
-        """
-        Get authorization headers
-        
-        Uses access token from settings/env
-        """
+    async def _get_headers() -> dict:
+        """Get headers with token from DB"""
+        token = await UpstoxAuthService.get_access_token()
         return {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "Authorization": f"Bearer {settings.UPSTOX_ACCESS_TOKEN}"
+            "Authorization": f"Bearer {token}"
         }
     
     @staticmethod
@@ -60,10 +58,11 @@ class GTTService:
             MULTIPLE GTT = ஒரே order-ல Entry, Target, SL set பண்ணலாம்
             Entry trigger ஆனவுடன் Target/SL active ஆகும்
         """
+        headers = await GTTService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{GTTService.BASE_URL}/place",
-                headers=GTTService._get_headers(),
+                headers=headers,
                 json=request.model_dump()
             )
             response.raise_for_status()
@@ -86,10 +85,11 @@ class GTTService:
             Trailing SL: trailing_gap add பண்ணி modify பண்ணலாம்
             Price move ஆகும் போது SL auto adjust ஆகும்
         """
+        headers = await GTTService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.put(
                 f"{GTTService.BASE_URL}/modify",
-                headers=GTTService._get_headers(),
+                headers=headers,
                 json=request.model_dump()
             )
             response.raise_for_status()
@@ -106,11 +106,12 @@ class GTTService:
         Returns:
             API response
         """
+        headers = await GTTService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.request(
                 method="DELETE",
                 url=f"{GTTService.BASE_URL}/cancel",
-                headers=GTTService._get_headers(),
+                headers=headers,
                 json={"gtt_order_id": gtt_order_id}
             )
             response.raise_for_status()
@@ -127,10 +128,11 @@ class GTTService:
         Returns:
             Order details including status, rules, etc.
         """
+        headers = await GTTService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 GTTService.BASE_URL,
-                headers=GTTService._get_headers(),
+                headers=headers,
                 params={"gtt_order_id": gtt_order_id}
             )
             response.raise_for_status()
@@ -144,10 +146,11 @@ class GTTService:
         Returns:
             List of all GTT orders for the user
         """
+        headers = await GTTService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 GTTService.BASE_URL,
-                headers=GTTService._get_headers()
+                headers=headers
             )
             response.raise_for_status()
             return response.json()

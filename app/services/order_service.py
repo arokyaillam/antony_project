@@ -4,6 +4,7 @@ Order Service - Upstox API v3
 
 Regular order placement (not GTT).
 Supports Sandbox mode for testing.
+Token fetched from DB.
 
 Author: Antony HFT System
 """
@@ -12,6 +13,7 @@ import httpx
 from typing import Literal, Optional
 from pydantic import BaseModel, Field
 from app.core.config import settings
+from app.services.upstox_auth import UpstoxAuthService
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -55,6 +57,7 @@ class OrderService:
     Order Service
     
     Regular order operations with Sandbox support.
+    Token is fetched from DB (not .env).
     
     Sandbox Mode:
         UPSTOX_SANDBOX_MODE=true → Uses sandbox token
@@ -69,12 +72,16 @@ class OrderService:
     BASE_URL = "https://api.upstox.com/v3/order"
     
     @staticmethod
-    def _get_headers() -> dict:
-        """Get headers with active token (live or sandbox)"""
+    async def _get_headers() -> dict:
+        """Get headers with token from DB (or sandbox token if sandbox mode)"""
+        if settings.UPSTOX_SANDBOX_MODE and settings.UPSTOX_SANDBOX_TOKEN:
+            token = settings.UPSTOX_SANDBOX_TOKEN
+        else:
+            token = await UpstoxAuthService.get_access_token()
         return {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "Authorization": f"Bearer {settings.active_token}"
+            "Authorization": f"Bearer {token}"
         }
     
     @staticmethod
@@ -100,10 +107,11 @@ class OrderService:
             LIMIT order = Execute only at specified price
             SL order = Stop-loss trigger
         """
+        headers = await OrderService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{OrderService.BASE_URL}/place",
-                headers=OrderService._get_headers(),
+                headers=headers,
                 json=request.model_dump()
             )
             response.raise_for_status()
@@ -133,10 +141,11 @@ class OrderService:
         if request.validity:
             payload["validity"] = request.validity
             
+        headers = await OrderService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.put(
                 f"{OrderService.BASE_URL}/modify",
-                headers=OrderService._get_headers(),
+                headers=headers,
                 json=payload
             )
             response.raise_for_status()
@@ -151,10 +160,11 @@ class OrderService:
         
         Sandbox supported ✓
         """
+        headers = await OrderService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.delete(
                 f"{OrderService.BASE_URL}/cancel",
-                headers=OrderService._get_headers(),
+                headers=headers,
                 params={"order_id": order_id}
             )
             response.raise_for_status()
@@ -170,10 +180,11 @@ class OrderService:
         Sandbox supported ✓
         Max 10 orders at once
         """
+        headers = await OrderService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{OrderService.BASE_URL}/multi/place",
-                headers=OrderService._get_headers(),
+                headers=headers,
                 json=[o.model_dump() for o in orders]
             )
             response.raise_for_status()

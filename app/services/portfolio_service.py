@@ -3,14 +3,14 @@ Portfolio Service - Upstox API v2
 =================================
 
 Funds, Positions, Trades, OrderBook APIs.
-All async using httpx.
+All async using httpx. Token fetched from DB.
 
 Author: Antony HFT System
 """
 
 import httpx
 from typing import Optional, Literal
-from app.core.config import settings
+from app.services.upstox_auth import UpstoxAuthService
 
 
 class PortfolioService:
@@ -18,6 +18,7 @@ class PortfolioService:
     Portfolio Service
     
     Upstox User/Portfolio API endpoints.
+    Token is fetched from DB (not .env).
     
     Endpoints:
         GET /user/get-funds-and-margin      - Funds & Margin
@@ -30,10 +31,12 @@ class PortfolioService:
     BASE_URL = "https://api.upstox.com/v2"
     
     @staticmethod
-    def _get_headers() -> dict:
+    async def _get_headers() -> dict:
+        """Get headers with token from DB"""
+        token = await UpstoxAuthService.get_access_token()
         return {
             "Accept": "application/json",
-            "Authorization": f"Bearer {settings.UPSTOX_ACCESS_TOKEN}"
+            "Authorization": f"Bearer {token}"
         }
     
     # ═══════════════════════════════════════════════════════════════════════════
@@ -55,10 +58,11 @@ class PortfolioService:
             Order place பண்ணும் முன் available_margin check பண்ணணும்.
             used_margin < available_margin confirm பண்ணணும்.
         """
+        headers = await PortfolioService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{PortfolioService.BASE_URL}/user/get-funds-and-margin",
-                headers=PortfolioService._get_headers(),
+                headers=headers,
                 params={"segment": segment}
             )
             response.raise_for_status()
@@ -81,10 +85,11 @@ class PortfolioService:
             quantity < 0 = Short position
             pnl = (ltp - average_price) * quantity
         """
+        headers = await PortfolioService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{PortfolioService.BASE_URL}/portfolio/short-term-positions",
-                headers=PortfolioService._get_headers()
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -97,10 +102,11 @@ class PortfolioService:
         Returns:
             All delivery holdings
         """
+        headers = await PortfolioService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{PortfolioService.BASE_URL}/portfolio/long-term-holdings",
-                headers=PortfolioService._get_headers()
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -121,10 +127,11 @@ class PortfolioService:
             Trade = Order execute ஆன record
             GTT trigger ஆனதும் இங்கே வரும்
         """
+        headers = await PortfolioService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{PortfolioService.BASE_URL}/order/trades",
-                headers=PortfolioService._get_headers()
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -137,10 +144,11 @@ class PortfolioService:
         Args:
             order_id: Order ID
         """
+        headers = await PortfolioService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{PortfolioService.BASE_URL}/order/trades",
-                headers=PortfolioService._get_headers(),
+                headers=headers,
                 params={"order_id": order_id}
             )
             response.raise_for_status()
@@ -162,10 +170,11 @@ class PortfolioService:
             status = open/complete/rejected/cancelled
             GTT orders pending இருந்தா trigger ஆகல
         """
+        headers = await PortfolioService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{PortfolioService.BASE_URL}/order/retrieve-all",
-                headers=PortfolioService._get_headers()
+                headers=headers
             )
             response.raise_for_status()
             return response.json()
@@ -178,10 +187,11 @@ class PortfolioService:
         Args:
             order_id: Order ID
         """
+        headers = await PortfolioService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{PortfolioService.BASE_URL}/order/details",
-                headers=PortfolioService._get_headers(),
+                headers=headers,
                 params={"order_id": order_id}
             )
             response.raise_for_status()
@@ -195,10 +205,11 @@ class PortfolioService:
         Args:
             order_id: Order ID
         """
+        headers = await PortfolioService._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{PortfolioService.BASE_URL}/order/history",
-                headers=PortfolioService._get_headers(),
+                headers=headers,
                 params={"order_id": order_id}
             )
             response.raise_for_status()
