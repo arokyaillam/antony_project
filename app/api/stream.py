@@ -13,8 +13,14 @@ router = APIRouter(prefix="/stream", tags=["Live Stream"])
 # RAW TICKS SSE - Original market feed
 # ═══════════════════════════════════════════════════════════════════════════════
 
-async def event_generator():
-    """Raw market feed SSE generator"""
+async def event_generator(instrument_filter: Optional[Set[str]] = None):
+    """
+    Raw market feed SSE generator
+    
+    Args:
+        instrument_filter: Optional set of instrument keys to include.
+                          If None, all instruments are returned.
+    """
     redis = RedisClient.get_pool()
     last_id = "$"
     
@@ -37,7 +43,23 @@ async def event_generator():
                         last_id = message_id
                         data = fields.get("data")
                         if data:
-                            yield f"data: {data}\n\n"
+                            # If no filter, send all
+                            if not instrument_filter:
+                                yield f"data: {data}\n\n"
+                            else:
+                                # Parse and filter feeds
+                                try:
+                                    parsed = json.loads(data)
+                                    feeds = parsed.get("feeds", {})
+                                    filtered_feeds = {
+                                        k: v for k, v in feeds.items() 
+                                        if k in instrument_filter
+                                    }
+                                    if filtered_feeds:
+                                        parsed["feeds"] = filtered_feeds
+                                        yield f"data: {json.dumps(parsed)}\n\n"
+                                except json.JSONDecodeError:
+                                    yield f"data: {data}\n\n"
                             
             except asyncio.CancelledError:
                 raise
@@ -49,9 +71,35 @@ async def event_generator():
 
 
 @router.get("/live")
-async def sse_stream():
-    """Raw market feed SSE endpoint"""
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+async def sse_stream(
+    instruments: Optional[str] = Query(
+        None, 
+        description="Comma-separated instrument keys to filter. Example: NSE_FO|61755,NSE_FO|61756"
+    )
+):
+    """
+    Raw market feed SSE endpoint
+    
+    Query Parameters:
+        instruments: Comma-separated instrument keys (optional)
+            - If provided: Only returns ticks for specified instruments
+            - If omitted: Returns ticks for ALL instruments
+    
+    Examples:
+        # எல்லா instruments
+        GET /api/v1/stream/live
+        
+        # Options மட்டும்
+        GET /api/v1/stream/live?instruments=NSE_FO|61755,NSE_FO|61756
+    """
+    instrument_filter: Optional[Set[str]] = None
+    if instruments:
+        instrument_filter = set(instruments.split(","))
+    
+    return StreamingResponse(
+        event_generator(instrument_filter), 
+        media_type="text/event-stream"
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -185,3 +233,58 @@ async def sse_candle_stream(
             "X-Accel-Buffering": "no"
         }
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ORDER UPDATE SSE - Portfolio stream for order updates
+# ═══════════════════════════════════════════════════════════════════════════════
+
+async def order_update_generator():
+    """
+    Order Update SSE Generator
+    
+    Bridges Upstox Portfolio WebSocket to SSE for frontend.
+    Streams order execution updates, GTT triggers, etc.
+    """
+    from app.services.order_update_service import OrderUpdateService
+    
+    try:
+        async for update in OrderUpdateService.stream_updates():
+            yield f"event: order\ndata: {json.dumps(update)}\n\n"
+    except asyncio.CancelledError:
+        await OrderUpdateService.stop()
+        raise
+    except Exception as e:
+        yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+
+
+@router.get("/orders")
+async def sse_order_stream():
+    """
+    Order Update SSE Endpoint
+    
+    Streams real-time order updates:
+    - Order placed/modified/cancelled
+    - GTT trigger events
+    - Order execution (complete/rejected)
+    
+    Example events:
+    ```
+    event: order
+    data: {"order_id": "123", "status": "complete", "quantity": 25}
+    ```
+    
+    Financial Logic:
+        GTT order execute ஆனவுடன் இங்கே notification வரும்.
+        Order status: PENDING → OPEN → COMPLETE / REJECTED
+    """
+    return StreamingResponse(
+        order_update_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+

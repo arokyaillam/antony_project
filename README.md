@@ -4,7 +4,7 @@
 
 ## 📊 Overview
 
-Antony HFT is a high-frequency algorithmic trading backend for the Indian Stock Market (NSE/BSE). It provides real-time market data ingestion, 1-minute candle aggregation with advanced metrics, and SSE streaming for frontend consumption.
+Antony HFT is a high-frequency algorithmic trading backend for the Indian Stock Market (NSE/BSE). It provides real-time market data ingestion, 1-minute candle aggregation, GTT order management, and SSE streaming.
 
 ## ⚡ Key Features
 
@@ -12,9 +12,10 @@ Antony HFT is a high-frequency algorithmic trading backend for the Indian Stock 
 |---------|-------------|
 | **Real-time WebSocket** | Upstox API V3 with Protobuf decoding |
 | **1-Minute Candles** | OHLC + Greeks + OI + IV + Walls |
-| **SSE Streaming** | Live candle stream to frontend |
-| **Wall Detection** | Bid/Ask qty > 2000 detection |
-| **Dynamic Subscriptions** | Auto-manage option strikes |
+| **SSE Streaming** | Live candle/order stream to frontend |
+| **GTT Orders** | Entry + Target + Stop-Loss + Trailing SL |
+| **Order Updates** | Real-time execution notifications |
+| **Instrument Filter** | Query param filtering for streams |
 
 ## 🛠️ Tech Stack
 
@@ -24,6 +25,7 @@ Package:     UV (not pip)
 Hot Cache:   Redis Streams
 Cold Store:  PostgreSQL (asyncpg)
 Broker:      Upstox API V3 (Protobuf/WebSocket)
+HTTP:        httpx (async)
 Validation:  Pydantic V2
 ```
 
@@ -35,21 +37,24 @@ antony_project/
 │   ├── api/
 │   │   ├── auth.py          # Upstox OAuth
 │   │   ├── feed.py          # Feed control endpoints
-│   │   ├── stream.py        # SSE endpoints (/live, /candles)
+│   │   ├── stream.py        # SSE (/live, /candles, /orders)
+│   │   ├── gtt.py           # GTT order endpoints
 │   │   └── instrument.py    # Option chain mapping
 │   ├── services/
-│   │   ├── feed_service.py      # WebSocket management
-│   │   ├── candle_aggregator.py # TBT → 1M candle
-│   │   └── upstox_auth.py       # Token management
+│   │   ├── feed_service.py         # WebSocket management
+│   │   ├── candle_aggregator.py    # TBT → 1M candle
+│   │   ├── gtt_service.py          # GTT order service
+│   │   ├── order_update_service.py # Order WebSocket
+│   │   └── upstox_auth.py          # Token management
 │   ├── models/
-│   │   └── candle.py        # Pydantic: Candle1M, RawTick
+│   │   ├── candle.py        # Candle1M, RawTick
+│   │   └── gtt.py           # GTT order models
 │   ├── db/
-│   │   ├── redis.py         # Redis client
-│   │   └── postgres.py      # PostgreSQL client
-│   └── main.py              # FastAPI app
-├── docker-compose.yml       # Redis + Postgres
-├── pyproject.toml           # Dependencies
-└── Dockerfile
+│   │   ├── redis.py
+│   │   └── postgres.py
+│   └── main.py
+├── docker-compose.yml
+└── pyproject.toml
 ```
 
 ## 🔥 API Endpoints
@@ -57,8 +62,8 @@ antony_project/
 ### Authentication
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/auth/login` | Upstox OAuth login URL |
-| GET | `/callback` | OAuth callback handler |
+| GET | `/api/v1/auth/login` | Upstox OAuth URL |
+| GET | `/callback` | OAuth callback |
 
 ### Feed Control
 | Method | Endpoint | Description |
@@ -67,48 +72,50 @@ antony_project/
 | POST | `/api/v1/feed/disconnect` | Stop WebSocket |
 | POST | `/api/v1/feed/subscribe` | Subscribe instruments |
 
+### GTT Orders
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/gtt/place` | Place GTT order |
+| PUT | `/api/v1/gtt/modify` | Modify order |
+| DELETE | `/api/v1/gtt/cancel` | Cancel order |
+| GET | `/api/v1/gtt/{id}` | Get order details |
+| GET | `/api/v1/gtt/` | Get all orders |
+
 ### Streaming (SSE)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/v1/stream/live` | Raw tick stream |
 | GET | `/api/v1/stream/candles` | 1-min candle stream |
+| GET | `/api/v1/stream/orders` | Order execution updates |
+
+#### Stream Filtering
+```bash
+# All instruments (default)
+GET /api/v1/stream/candles
+
+# Specific instruments only
+GET /api/v1/stream/candles?instruments=NSE_FO|61755,NSE_FO|61756
+```
 
 ### Health
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/health` | Redis + Postgres status |
 
-## 📈 Candle1M Model
+## 📈 GTT Order Example
 
-```python
+```json
 {
-  "instrument_key": "NSE_FO|41908",
-  "timestamp": "2025-12-05T12:05:00+05:30",
-  
-  # Price
-  "open": 180.0, "high": 182.5, "low": 179.5, "close": 181.0,
-  "price_diff": 1.0,
-  
-  # Bid/Ask Walls (qty > 2000)
-  "bid_ask": {
-    "bid_walls": [{"price": 180.0, "qty": 5000}],
-    "ask_walls": [{"price": 182.0, "qty": 3500}],
-    "spread": 0.15
-  },
-  
-  # Greeks
-  "greeks": {"delta": 0.45, "theta": -15.5, "gamma": 0.001, "vega": 12.5},
-  "delta_diff": 0.02,
-  
-  # Volume & OI
-  "vtt": 50000000, "volume_1m": 125000,
-  "oi": 5000000, "oi_diff": 1500,
-  
-  # IV
-  "iv": 0.18, "iv_diff": 0.002,
-  
-  # Pressure
-  "tbq": 1500000, "tsq": 1200000
+  "type": "MULTIPLE",
+  "quantity": 25,
+  "product": "I",
+  "rules": [
+    {"strategy": "ENTRY", "trigger_type": "ABOVE", "trigger_price": 200},
+    {"strategy": "TARGET", "trigger_type": "IMMEDIATE", "trigger_price": 220},
+    {"strategy": "STOPLOSS", "trigger_type": "IMMEDIATE", "trigger_price": 190, "trailing_gap": 5}
+  ],
+  "instrument_token": "NSE_FO|61755",
+  "transaction_type": "BUY"
 }
 ```
 
@@ -152,14 +159,18 @@ POSTGRES_DB=antony_hft
 ## 📡 Frontend Integration
 
 ```javascript
-// Connect to SSE candle stream
-const source = new EventSource('/api/v1/stream/candles');
-
-source.addEventListener('candle', (e) => {
+// 1. Candle Stream (with filter)
+const candles = new EventSource('/api/v1/stream/candles?instruments=NSE_FO|61755');
+candles.addEventListener('candle', (e) => {
   const candle = JSON.parse(e.data);
-  console.log(candle.instrument_key, candle.price_diff);
-  console.log('Bid Walls:', candle.bid_ask.bid_walls);
-  console.log('Delta:', candle.greeks.delta);
+  console.log(candle.close, candle.oi_diff);
+});
+
+// 2. Order Updates
+const orders = new EventSource('/api/v1/stream/orders');
+orders.addEventListener('order', (e) => {
+  const update = JSON.parse(e.data);
+  console.log('Order:', update.status, update.order_id);
 });
 ```
 
