@@ -35,8 +35,28 @@ async def get_funds(segment: str = Query("SEC", description="SEC=Equity, COM=Com
     """
     try:
         return await PortfolioService.get_funds_and_margin(segment)
+    except ValueError as e:
+        # Token not found - return empty data (allow frontend to render)
+        return {
+            "status": "error",
+            "message": str(e),
+            "data": {
+                "available_margin": 0,
+                "used_margin": 0,
+                "payin_amount": 0
+            }
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # API error - return empty data with error message
+        return {
+            "status": "error",
+            "message": str(e),
+            "data": {
+                "available_margin": 0,
+                "used_margin": 0,
+                "payin_amount": 0
+            }
+        }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
