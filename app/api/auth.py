@@ -34,8 +34,14 @@ async def login():
 
 @router.get("/callback")
 async def callback(code: str):
+    """
+    OAuth callback - Token save பண்ணி frontend dashboard-க்கு redirect
+    """
     try:
         access_token = await UpstoxAuthService.generate_access_token(code)
-        return {"message": "Login successful", "access_token": access_token}
+        # Token save ஆச்சு, frontend dashboard-க்கு redirect பண்ணு
+        return RedirectResponse(url="http://localhost:5173/dashboard")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Error ஆனா frontend-ல error page-க்கு redirect பண்ணு
+        return RedirectResponse(url=f"http://localhost:5173/auth/error?message={str(e)}")
+

@@ -1,0 +1,417 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Credential {
+  id          Int       @id @default(autoincrement())
+  apiKey      String    @map("api_key") @db.VarChar(255)
+  apiSecret   String    @map("api_secret") @db.VarChar(255)
+  redirectUri String    @map("redirect_uri") @db.VarChar(255)
+  accessToken String?   @map("access_token")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("credentials")
+}
+
+model ask_1m {
+  id             Int       @id @default(autoincrement())
+  instrument_key String    @db.VarChar(50)
+  timestamp_1m   DateTime  @db.Timestamptz(6)
+  ltt            DateTime  @db.Timestamptz(6)
+  ask_p1         Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q1         Int       @default(0)
+  ask_p2         Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q2         Int       @default(0)
+  ask_p3         Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q3         Int       @default(0)
+  ask_p4         Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q4         Int       @default(0)
+  ask_p5         Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q5         Int       @default(0)
+  ask_p6         Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q6         Int       @default(0)
+  ask_p7         Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q7         Int       @default(0)
+  ask_p8         Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q8         Int       @default(0)
+  ask_p9         Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q9         Int       @default(0)
+  ask_p10        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q10        Int       @default(0)
+  ask_p11        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q11        Int       @default(0)
+  ask_p12        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q12        Int       @default(0)
+  ask_p13        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q13        Int       @default(0)
+  ask_p14        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q14        Int       @default(0)
+  ask_p15        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q15        Int       @default(0)
+  ask_p16        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q16        Int       @default(0)
+  ask_p17        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q17        Int       @default(0)
+  ask_p18        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q18        Int       @default(0)
+  ask_p19        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q19        Int       @default(0)
+  ask_p20        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q20        Int       @default(0)
+  ask_p21        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q21        Int       @default(0)
+  ask_p22        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q22        Int       @default(0)
+  ask_p23        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q23        Int       @default(0)
+  ask_p24        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q24        Int       @default(0)
+  ask_p25        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q25        Int       @default(0)
+  ask_p26        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q26        Int       @default(0)
+  ask_p27        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q27        Int       @default(0)
+  ask_p28        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q28        Int       @default(0)
+  ask_p29        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q29        Int       @default(0)
+  ask_p30        Decimal   @default(0) @db.Decimal(12, 2)
+  ask_q30        Int       @default(0)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([instrument_key, timestamp_1m])
+  @@index([instrument_key, timestamp_1m(sort: Desc)], map: "idx_ask_1m_ts")
+}
+
+model bid_1m {
+  id             Int       @id @default(autoincrement())
+  instrument_key String    @db.VarChar(50)
+  timestamp_1m   DateTime  @db.Timestamptz(6)
+  ltt            DateTime  @db.Timestamptz(6)
+  bid_p1         Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q1         Int       @default(0)
+  bid_p2         Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q2         Int       @default(0)
+  bid_p3         Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q3         Int       @default(0)
+  bid_p4         Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q4         Int       @default(0)
+  bid_p5         Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q5         Int       @default(0)
+  bid_p6         Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q6         Int       @default(0)
+  bid_p7         Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q7         Int       @default(0)
+  bid_p8         Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q8         Int       @default(0)
+  bid_p9         Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q9         Int       @default(0)
+  bid_p10        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q10        Int       @default(0)
+  bid_p11        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q11        Int       @default(0)
+  bid_p12        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q12        Int       @default(0)
+  bid_p13        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q13        Int       @default(0)
+  bid_p14        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q14        Int       @default(0)
+  bid_p15        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q15        Int       @default(0)
+  bid_p16        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q16        Int       @default(0)
+  bid_p17        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q17        Int       @default(0)
+  bid_p18        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q18        Int       @default(0)
+  bid_p19        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q19        Int       @default(0)
+  bid_p20        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q20        Int       @default(0)
+  bid_p21        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q21        Int       @default(0)
+  bid_p22        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q22        Int       @default(0)
+  bid_p23        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q23        Int       @default(0)
+  bid_p24        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q24        Int       @default(0)
+  bid_p25        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q25        Int       @default(0)
+  bid_p26        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q26        Int       @default(0)
+  bid_p27        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q27        Int       @default(0)
+  bid_p28        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q28        Int       @default(0)
+  bid_p29        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q29        Int       @default(0)
+  bid_p30        Decimal   @default(0) @db.Decimal(12, 2)
+  bid_q30        Int       @default(0)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([instrument_key, timestamp_1m])
+  @@index([instrument_key, timestamp_1m(sort: Desc)], map: "idx_bid_1m_ts")
+}
+
+model delta_1m {
+  id             Int       @id @default(autoincrement())
+  instrument_key String    @db.VarChar(50)
+  timestamp_1m   DateTime  @db.Timestamptz(6)
+  first_ltt      DateTime  @db.Timestamptz(6)
+  last_ltt       DateTime  @db.Timestamptz(6)
+  duration_ms    Int
+  ltp_delta      Decimal   @db.Decimal(12, 4)
+  ltp_delta_pct  Decimal   @db.Decimal(8, 4)
+  oi_delta       Decimal   @db.Decimal(15, 2)
+  iv_delta       Decimal   @db.Decimal(10, 8)
+  tbq_delta      Decimal   @db.Decimal(15, 2)
+  tsq_delta      Decimal   @db.Decimal(15, 2)
+  delta_delta    Decimal   @db.Decimal(10, 6)
+  theta_delta    Decimal   @db.Decimal(10, 6)
+  gamma_delta    Decimal   @db.Decimal(10, 6)
+  vega_delta     Decimal   @db.Decimal(10, 6)
+  volume_delta   BigInt
+  bid_p1_delta   Decimal   @db.Decimal(12, 4)
+  bid_q1_delta   Int
+  ask_p1_delta   Decimal   @db.Decimal(12, 4)
+  ask_q1_delta   Int
+  spread_start   Decimal   @db.Decimal(12, 4)
+  spread_end     Decimal   @db.Decimal(12, 4)
+  spread_delta   Decimal   @db.Decimal(12, 4)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([instrument_key, timestamp_1m])
+  @@index([timestamp_1m, ltp_delta_pct(sort: Desc)], map: "idx_delta_1m_ltp")
+  @@index([instrument_key, timestamp_1m(sort: Desc)], map: "idx_delta_1m_ts")
+}
+
+model extras_1m {
+  id             Int       @id @default(autoincrement())
+  instrument_key String    @db.VarChar(50)
+  timestamp_1m   DateTime  @db.Timestamptz(6)
+  ltt            DateTime  @db.Timestamptz(6)
+  atp            Decimal   @db.Decimal(12, 2)
+  vtt            BigInt
+  oi             Decimal   @db.Decimal(15, 2)
+  iv             Decimal   @db.Decimal(10, 8)
+  tbq            Decimal   @db.Decimal(15, 2)
+  tsq            Decimal   @db.Decimal(15, 2)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([instrument_key, timestamp_1m])
+  @@index([instrument_key, timestamp_1m(sort: Desc)], map: "idx_extras_1m_ts")
+}
+
+model greeks_1m {
+  id             Int       @id @default(autoincrement())
+  instrument_key String    @db.VarChar(50)
+  timestamp_1m   DateTime  @db.Timestamptz(6)
+  ltt            DateTime  @db.Timestamptz(6)
+  delta          Decimal   @db.Decimal(10, 6)
+  theta          Decimal   @db.Decimal(10, 6)
+  gamma          Decimal   @db.Decimal(10, 6)
+  vega           Decimal   @db.Decimal(10, 6)
+  rho            Decimal   @db.Decimal(10, 6)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([instrument_key, timestamp_1m])
+  @@index([instrument_key, timestamp_1m(sort: Desc)], map: "idx_greeks_1m_ts")
+}
+
+model greeks_momentum {
+  id                 Int       @id @default(autoincrement())
+  timestamp          DateTime  @db.Timestamptz(6)
+  instrument_key     String    @db.VarChar(50)
+  delta_velocity     Float?
+  gamma_acceleration Float?
+  iv_velocity        Float?
+  theta_acceleration Float?
+  momentum_score     Float?
+  momentum_type      String?   @db.VarChar(50)
+  signal             String?   @db.VarChar(50)
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([timestamp], map: "idx_greeks_momentum_timestamp")
+}
+
+model ltpc_1m {
+  id             Int       @id @default(autoincrement())
+  instrument_key String    @db.VarChar(50)
+  timestamp_1m   DateTime  @db.Timestamptz(6)
+  ltt            DateTime  @db.Timestamptz(6)
+  ltp            Decimal   @db.Decimal(12, 2)
+  ltq            Int
+  cp             Decimal   @db.Decimal(12, 2)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([instrument_key, timestamp_1m])
+  @@index([instrument_key, timestamp_1m(sort: Desc)], map: "idx_ltpc_1m_ts")
+}
+
+model market_patterns {
+  id             Int       @id @default(autoincrement())
+  timestamp      DateTime  @db.Timestamptz(6)
+  instrument_key String    @db.VarChar(50)
+  pattern        String    @db.VarChar(50)
+  signal         String    @db.VarChar(50)
+  price_change   Float?
+  oi_change      Int?
+  volume_change  Int?
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([instrument_key], map: "idx_market_patterns_instrument")
+  @@index([timestamp], map: "idx_market_patterns_timestamp")
+}
+
+model market_sentiment {
+  id                 Int       @id @default(autoincrement())
+  timestamp          DateTime  @db.Timestamptz(6)
+  instrument_key     String    @db.VarChar(50)
+  sentiment          String?   @db.VarChar(50)
+  sentiment_score    Float?
+  components         Json?
+  support_resistance Json?
+  trade_setup        Json?
+  market_regime      String?   @db.VarChar(100)
+  key_insights       Json?
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([timestamp], map: "idx_market_sentiment_timestamp")
+}
+
+model ohlc_1m {
+  id             Int       @id @default(autoincrement())
+  instrument_key String    @db.VarChar(50)
+  timestamp_1m   DateTime  @db.Timestamptz(6)
+  ltt            DateTime  @db.Timestamptz(6)
+  open           Decimal   @db.Decimal(12, 2)
+  high           Decimal   @db.Decimal(12, 2)
+  low            Decimal   @db.Decimal(12, 2)
+  close          Decimal   @db.Decimal(12, 2)
+  volume         BigInt
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([instrument_key, timestamp_1m])
+  @@index([instrument_key, timestamp_1m(sort: Desc)], map: "idx_ohlc_1m_ts")
+}
+
+model oi_1m {
+  id             Int       @id @default(autoincrement())
+  instrument_key String    @db.VarChar(50)
+  timestamp_1m   DateTime  @db.Timestamptz(6)
+  first_ltt      DateTime  @db.Timestamptz(6)
+  last_ltt       DateTime  @db.Timestamptz(6)
+  first_oi       Decimal   @db.Decimal(15, 2)
+  last_oi        Decimal   @db.Decimal(15, 2)
+  oi_delta       Decimal   @db.Decimal(15, 2)
+  oi_delta_pct   Decimal   @db.Decimal(8, 4)
+  direction      String    @db.VarChar(10)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([instrument_key, timestamp_1m])
+  @@index([instrument_key, timestamp_1m(sort: Desc)], map: "idx_oi_1m_ts")
+}
+
+model order_imbalance {
+  id              Int       @id @default(autoincrement())
+  timestamp       DateTime  @db.Timestamptz(6)
+  instrument_key  String    @db.VarChar(50)
+  tbq             Int?
+  tsq             Int?
+  imbalance_ratio Float?
+  signal          String    @db.VarChar(50)
+  ltp             Float?
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([timestamp], map: "idx_order_imbalance_timestamp")
+}
+
+model panic_signals {
+  id               Int       @id @default(autoincrement())
+  timestamp        DateTime  @db.Timestamptz(6)
+  instrument_key   String    @db.VarChar(50)
+  pattern          String    @db.VarChar(50)
+  signal           String    @db.VarChar(50)
+  ltp              Float?
+  price_change_pct Float?
+  oi_change        Int?
+  volume_change    Int?
+  delta_change     Float?
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([timestamp], map: "idx_panic_signals_timestamp")
+}
+
+model price_1m {
+  id             Int       @id @default(autoincrement())
+  instrument_key String    @db.VarChar(50)
+  timestamp_1m   DateTime  @db.Timestamptz(6)
+  first_ltt      DateTime  @db.Timestamptz(6)
+  last_ltt       DateTime  @db.Timestamptz(6)
+  first_ltp      Decimal   @db.Decimal(12, 2)
+  last_ltp       Decimal   @db.Decimal(12, 2)
+  ltp_delta      Decimal   @db.Decimal(12, 4)
+  ltp_delta_pct  Decimal   @db.Decimal(8, 4)
+  direction      String    @db.VarChar(10)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([instrument_key, timestamp_1m])
+  @@index([instrument_key, timestamp_1m(sort: Desc)], map: "idx_price_1m_ts")
+}
+
+model signal_1m {
+  id             Int       @id @default(autoincrement())
+  instrument_key String    @db.VarChar(50)
+  timestamp_1m   DateTime  @db.Timestamptz(6)
+  price_dir      String    @db.VarChar(10)
+  oi_dir         String    @db.VarChar(10)
+  volume_dir     String    @db.VarChar(10)
+  ltp_delta_pct  Decimal   @db.Decimal(8, 4)
+  oi_delta_pct   Decimal   @db.Decimal(8, 4)
+  volume_delta   BigInt
+  signal         String    @db.VarChar(30)
+  action         String    @db.VarChar(30)
+  confidence     Int       @default(50)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([instrument_key, timestamp_1m])
+  @@index([timestamp_1m, signal], map: "idx_signal_1m_signal")
+  @@index([instrument_key, timestamp_1m(sort: Desc)], map: "idx_signal_1m_ts")
+}
+
+model volume_1m {
+  id             Int       @id @default(autoincrement())
+  instrument_key String    @db.VarChar(50)
+  timestamp_1m   DateTime  @db.Timestamptz(6)
+  first_ltt      DateTime  @db.Timestamptz(6)
+  last_ltt       DateTime  @db.Timestamptz(6)
+  first_volume   BigInt
+  last_volume    BigInt
+  volume_delta   BigInt
+  direction      String    @db.VarChar(10)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([instrument_key, timestamp_1m])
+  @@index([instrument_key, timestamp_1m(sort: Desc)], map: "idx_volume_1m_ts")
+}
+
+model whale_alerts {
+  id             Int       @id @default(autoincrement())
+  timestamp      DateTime  @db.Timestamptz(6)
+  instrument_key String    @db.VarChar(50)
+  whale_type     String    @db.VarChar(50)
+  alert_type     String    @db.VarChar(50)
+  alert_value    Float?
+  signal         String?   @db.VarChar(50)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([timestamp], map: "idx_whale_alerts_timestamp")
+}

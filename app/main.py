@@ -77,13 +77,19 @@ app.include_router(order_router, prefix=settings.API_V1_STR)
 
 @app.get("/callback")
 async def callback(code: str):
-    """OAuth callback handler"""
+    """
+    OAuth callback handler - Upstox இங்க redirect பண்ணும்
+    Token save பண்ணி frontend dashboard-க்கு redirect
+    """
+    from fastapi.responses import RedirectResponse
     from app.services.upstox_auth import UpstoxAuthService
     try:
         access_token = await UpstoxAuthService.generate_access_token(code)
-        return {"message": "Login successful", "access_token": access_token}
+        # Success - redirect to frontend dashboard
+        return RedirectResponse(url="http://localhost:5173/dashboard")
     except Exception as e:
-        return {"error": str(e)}
+        # Error - redirect with error message
+        return RedirectResponse(url=f"http://localhost:5173/auth/error?message={str(e)}")
 
 
 @app.get("/")

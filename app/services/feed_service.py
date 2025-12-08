@@ -130,6 +130,11 @@ class FeedService:
         return list(cls._subscriptions)
 
     @classmethod
+    def is_connected(cls) -> bool:
+        """Check if WebSocket is currently connected and running"""
+        return cls._is_running and cls._websocket is not None
+
+    @classmethod
     async def update_subscriptions(
         cls, 
         new_instrument_keys: List[str], 
