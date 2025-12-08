@@ -15,7 +15,7 @@ import logging
 import websockets
 import upstox_client
 from typing import AsyncGenerator, Optional, Callable
-from app.core.config import settings
+from app.services.upstox_auth import UpstoxAuthService
 
 logger = logging.getLogger(__name__)
 
@@ -39,21 +39,22 @@ class OrderUpdateService:
     _websocket = None
     
     @staticmethod
-    def _get_configuration() -> upstox_client.Configuration:
-        """Get Upstox SDK configuration with access token"""
+    async def _get_configuration() -> upstox_client.Configuration:
+        """Get Upstox SDK configuration with access token from DB"""
         configuration = upstox_client.Configuration()
-        configuration.access_token = settings.UPSTOX_ACCESS_TOKEN
+        # Token from database, not env file!
+        configuration.access_token = await UpstoxAuthService.get_access_token()
         return configuration
     
     @staticmethod
-    def _get_authorize_url() -> str:
+    async def _get_authorize_url() -> str:
         """
         Get authorized WebSocket URL from Upstox API
         
         Returns:
             Authorized redirect URI for WebSocket connection
         """
-        configuration = OrderUpdateService._get_configuration()
+        configuration = await OrderUpdateService._get_configuration()
         api_instance = upstox_client.WebsocketApi(
             upstox_client.ApiClient(configuration)
         )
@@ -90,8 +91,8 @@ class OrderUpdateService:
         
         while OrderUpdateService._running:
             try:
-                # Get fresh authorized URL
-                ws_url = OrderUpdateService._get_authorize_url()
+                # Get fresh authorized URL (using token from DB)
+                ws_url = await OrderUpdateService._get_authorize_url()
                 logger.info(f"Connecting to order update stream...")
                 
                 async with websockets.connect(ws_url, ssl=ssl_context) as websocket:
