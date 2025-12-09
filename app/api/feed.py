@@ -88,4 +88,13 @@ async def update_subscriptions(request: UpdateSubscriptionsRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/status")
+async def get_feed_status():
+    try:
+        is_connected = FeedService.is_connected()
+        return {"connected": is_connected}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 

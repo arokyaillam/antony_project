@@ -1,9 +1,12 @@
 <!-- IndexSelector Component - Select Index & Fetch Option Chain -->
 <script lang="ts">
+    import { onMount } from "svelte";
     import {
         subscribeToFeed,
         unsubscribeFromFeed,
         getLocalSubscriptions,
+        checkConnectionStatus,
+        isFeedConnected,
     } from "$lib/stores/feed";
     import { connectStream, isStreamConnected } from "$lib/stores/stream";
     import {
@@ -32,11 +35,24 @@
     let subscribedCount = $state(0);
     let error = $state("");
 
+    // Check connection on mount
+    onMount(() => {
+        checkConnectionStatus();
+    });
+
     // Fetch option chain and subscribe
     async function handleSubscribe() {
         if (!selectedIndex || !expiryDate || !atmStrike) {
             error = "All fields are required!";
             return;
+        }
+
+        // Check if feed is connected before subscribing
+        if (!$isFeedConnected) {
+            // Optional: try to auto-connect here?
+            // For now, let's just warn or let the subscribe fail (which returns message)
+            // But better to check.
+            // console.warn("Feed not connected. Attempting to subscribe anyway (might fail if truly disconnected)");
         }
 
         isLoading = true;
