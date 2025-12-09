@@ -5,6 +5,16 @@
         unsubscribeFromFeed,
         getLocalSubscriptions,
     } from "$lib/stores/feed";
+    import { connectStream, isStreamConnected } from "$lib/stores/stream";
+    import {
+        connectCandleStream,
+        isCandleStreamConnected,
+    } from "$lib/stores/candles";
+    import {
+        marketContext,
+        type MarketContextState,
+        type InstrumentMeta,
+    } from "$lib/stores/marketContext";
 
     const API_BASE = "http://localhost:8000";
 
@@ -55,35 +65,132 @@
             const optionChain = await res.json();
             console.log("Option Chain:", optionChain);
 
-            // 2. Extract all instrument keys (CE + PE)
+            // 2. Build Market Context
+            const newContext: MarketContextState = {
+                indexKey: selectedIndex,
+                expiry: expiryDate,
+                atmStrike: atmStrike,
+                instruments: {},
+                chain: {},
+            };
+
             const instrumentKeys: string[] = [];
+            instrumentKeys.push(selectedIndex); // Add index itself
 
-            // Add the index itself
-            instrumentKeys.push(selectedIndex);
-
-            // Add all option instruments
+            // Process Options
             for (const option of optionChain.options) {
+                const strike = option.strike_price;
+
+                // Ensure chain entry exists
+                if (!newContext.chain[strike]) {
+                    newContext.chain[strike] = {};
+                }
+
+                // Add CE
                 if (option.ce_instrument_key) {
+                    newContext.instruments[option.ce_instrument_key] = {
+                        strike: strike,
+                        type: "CE",
+                        key: option.ce_instrument_key,
+                        symbol: `CE ${strike}`, // Placeholder symbol
+                    };
+                    newContext.chain[strike].CE = option.ce_instrument_key;
                     instrumentKeys.push(option.ce_instrument_key);
                 }
+
+                // Add PE
                 if (option.pe_instrument_key) {
+                    newContext.instruments[option.pe_instrument_key] = {
+                        strike: strike,
+                        type: "PE",
+                        key: option.pe_instrument_key,
+                        symbol: `PE ${strike}`, // Placeholder symbol
+                    };
+                    newContext.chain[strike].PE = option.pe_instrument_key;
                     instrumentKeys.push(option.pe_instrument_key);
                 }
             }
 
-            console.log("Subscribing to instruments:", instrumentKeys);
+            // 3. Update Global Context
+            marketContext.setContext(newContext);
+            console.log("Market Context Updated:", newContext);
 
-            // 3. Subscribe via feed API
-            const subscribeResult = await subscribeToFeed(
-                instrumentKeys,
-                "full",
+            // --- LOGIC MOVED UP: Select 5 strikes closest to ATM (10 instruments) ---
+            const allStrikes = Object.keys(newContext.chain)
+                .map(Number)
+                .sort((a, b) => a - b);
+
+            // Find index of ATM or closest strike
+            let atmIndex = allStrikes.indexOf(atmStrike);
+
+            // If exact ATM not found, find closest
+            if (atmIndex === -1) {
+                let minDiff = Infinity;
+                allStrikes.forEach((s, i) => {
+                    const diff = Math.abs(s - atmStrike);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        atmIndex = i;
+                    }
+                });
+            }
+
+            // Select range: -2 to +2 around ATM (5 strikes total)
+            const start = Math.max(0, atmIndex - 2);
+            const end = Math.min(allStrikes.length, start + 5);
+            const targetStrikes = allStrikes.slice(start, end);
+
+            // Identify the 10 focused keys (Candle Keys) using a Set for easy lookup
+            const candleKeySet = new Set<string>();
+            const candleKeys: string[] = [];
+
+            targetStrikes.forEach((strike) => {
+                const c = newContext.chain[strike];
+                if (c.CE) {
+                    candleKeys.push(c.CE);
+                    candleKeySet.add(c.CE);
+                }
+                if (c.PE) {
+                    candleKeys.push(c.PE);
+                    candleKeySet.add(c.PE);
+                }
+            });
+
+            // Identify remaining keys (Regular Keys)
+            const regularKeys = instrumentKeys.filter(
+                (k) => !candleKeySet.has(k),
             );
 
-            if (subscribeResult) {
+            console.log(`Focused Keys (full_d30): ${candleKeys.length}`);
+            console.log(`Regular Keys (full): ${regularKeys.length}`);
+
+            // 4. Subscribe via feed API (Split Batches)
+            // Batch A: The 10 Focused Keys -> full_d30
+            const sub1 = await subscribeToFeed(candleKeys, "full_d30");
+
+            // Batch B: The Rest -> full
+            const sub2 = await subscribeToFeed(regularKeys, "full");
+
+            // Combined success check
+            if (sub1 && sub2) {
                 subscribedCount = instrumentKeys.length;
-                console.log(`Subscribed to ${subscribedCount} instruments`);
+                console.log(
+                    `Subscribed to ${subscribedCount} instruments total`,
+                );
+
+                // 5. Connect Streams
+                console.log("Connecting to Live and Candle Streams...");
+
+                // A. Live Market Stream (Connect ALL)
+                connectStream(instrumentKeys);
+
+                // B. Candle Stream (Limit to 5 Strikes = 10 Instruments)
+                console.log(
+                    `Candle Stream restricted to ${candleKeys.length} instruments`,
+                );
+                connectCandleStream(candleKeys);
             } else {
-                throw new Error("Subscription failed");
+                throw new Error("Subscription failed (Partial or Complete)");
             }
         } catch (err: any) {
             error = err.message || "Unknown error";
