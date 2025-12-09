@@ -1,6 +1,7 @@
 <!-- Header Component - Top navigation bar -->
 <script lang="ts">
     import UserMenu from "./UserMenu.svelte";
+    import IndexSelector from "./IndexSelector.svelte";
 </script>
 
 <header class="header">
@@ -21,6 +22,7 @@
     </nav>
 
     <div class="header-right">
+        <IndexSelector />
         <div class="status-badge">
             <span class="status-dot"></span>
             <span class="status-text">Live</span>
