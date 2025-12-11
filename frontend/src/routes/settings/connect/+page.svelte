@@ -1,6 +1,7 @@
 <!-- Upstox Feed Connect - Connect + Subscribe -->
 <script lang="ts">
     import { onMount } from "svelte";
+    import { checkConnectionStatus, isFeedConnected } from "$lib/stores/feed";
 
     const API_BASE = "http://localhost:8000";
 
@@ -25,6 +26,30 @@
     onMount(async () => {
         await checkBackendHealth();
         await checkTokenStatus();
+
+        // Initial Connection Check
+        const connected = await checkConnectionStatus();
+        if (connected) {
+            feedStatus = "connected";
+            statusMessage = "WebSocket already connected (Persistent) ✅";
+            // Auto-start streams if UI reconnects
+            startAllStreams();
+        }
+    });
+
+    // Reactive: If global store updates (e.g. from another tab/component), update local state
+    $effect(() => {
+        if ($isFeedConnected && feedStatus !== "connected") {
+            feedStatus = "connected";
+            statusMessage = "WebSocket synced from store ✅";
+            if (!liveEventSource) {
+                startAllStreams();
+            }
+        } else if (!$isFeedConnected && feedStatus === "connected") {
+            feedStatus = "disconnected";
+            statusMessage = "Disconnected (Synced)";
+            stopAllStreams();
+        }
     });
 
     async function checkBackendHealth() {
@@ -57,6 +82,9 @@
     let orderStream = $state(false);
 
     function startAllStreams() {
+        // Prevent duplicate streams
+        if (liveEventSource) return;
+
         // Start Live Stream
         liveEventSource = new EventSource(`${API_BASE}/api/v1/stream/live`);
         liveEventSource.onopen = () => {
@@ -64,6 +92,7 @@
         };
         liveEventSource.onerror = () => {
             liveStream = false;
+            // Optional: retry logic?
         };
 
         // Start Candle Stream
@@ -117,6 +146,9 @@
             const data = await res.json();
 
             if (res.ok) {
+                // Update Global Store
+                isFeedConnected.set(true);
+
                 feedStatus = "connected";
                 statusMessage = "WebSocket connected! Starting streams...";
 
@@ -142,6 +174,10 @@
                 method: "POST",
             });
             const data = await res.json();
+
+            // Update store
+            isFeedConnected.set(false);
+
             feedStatus = "disconnected";
             statusMessage = data.message || "Disconnected";
             subscriptions = [];
