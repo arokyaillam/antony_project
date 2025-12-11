@@ -1,15 +1,15 @@
 // Feed Subscription Store - Manage backend subscriptions
 // Calls /api/v1/feed/subscribe and /api/v1/feed/unsubscribe
 
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 
 const API_BASE = 'http://localhost:8000';
 
 // Global Connection Status Store
 export const isFeedConnected = writable(false);
 
-// Track current subscriptions locally
-let subscriptions: Set<string> = new Set();
+// Subscriptions Store
+export const subscriptionStore = writable<Set<string>>(new Set());
 
 // Check connection status
 export async function checkConnectionStatus() {
@@ -37,7 +37,10 @@ export async function subscribeToFeed(instrumentKeys: string[], mode: 'full' | '
         });
 
         if (res.ok) {
-            instrumentKeys.forEach(key => subscriptions.add(key));
+            subscriptionStore.update(subs => {
+                instrumentKeys.forEach(key => subs.add(key));
+                return new Set(subs); // Return new Set to trigger reactivity
+            });
             console.log('Subscribed:', instrumentKeys);
             // If subscription succeeds, it implies connected (or auto-connected)
             checkConnectionStatus();
@@ -60,7 +63,10 @@ export async function unsubscribeFromFeed(instrumentKeys: string[]) {
         });
 
         if (res.ok) {
-            instrumentKeys.forEach(key => subscriptions.delete(key));
+            subscriptionStore.update(subs => {
+                instrumentKeys.forEach(key => subs.delete(key));
+                return new Set(subs); // Return new Set to trigger reactivity
+            });
             console.log('Unsubscribed:', instrumentKeys);
         }
 
@@ -73,7 +79,7 @@ export async function unsubscribeFromFeed(instrumentKeys: string[]) {
 
 // Get current local subscriptions
 export function getLocalSubscriptions(): string[] {
-    return Array.from(subscriptions);
+    return Array.from(get(subscriptionStore));
 }
 
 // Sync with backend
@@ -81,7 +87,8 @@ export async function syncSubscriptions() {
     try {
         const res = await fetch(`${API_BASE}/api/v1/feed/subscriptions`);
         const data = await res.json();
-        subscriptions = new Set(data.subscriptions || []);
+        const newSubs = new Set<string>(data.subscriptions || []);
+        subscriptionStore.set(newSubs);
         return data;
     } catch (err) {
         console.error('Sync failed:', err);
@@ -91,5 +98,5 @@ export async function syncSubscriptions() {
 
 // Clear local tracking
 export function clearLocalSubscriptions() {
-    subscriptions.clear();
+    subscriptionStore.set(new Set());
 }

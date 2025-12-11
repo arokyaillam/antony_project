@@ -4,17 +4,17 @@
     import {
         connectStream,
         disconnectStream,
-        subscribeToStream,
+        streamStore,
     } from "$lib/stores/stream";
     import {
         connectCandleStream,
         disconnectCandleStream,
-        subscribeToCandleStream,
+        candleStore,
     } from "$lib/stores/candles";
     import {
         connectOrderStream,
         disconnectOrderStream,
-        subscribeToOrderStream,
+        orderStore,
     } from "$lib/stores/orders";
 
     const API_BASE = "http://localhost:8000";
@@ -23,24 +23,22 @@
 
     // Raw stream
     let rawConnected = $state(false);
-    let rawData = $state<any[]>([]);
-    let rawUnsub: (() => void) | null = null;
+    // Simple verification check: using the store value directly
+    let rawData = $derived($streamStore ? [$streamStore] : []);
 
     // Candle stream
     let candleConnected = $state(false);
-    let candleData = $state<any[]>([]);
-    let candleUnsub: (() => void) | null = null;
+    let candleData = $derived($candleStore ? [$candleStore] : []);
 
     // Order stream
     let orderConnected = $state(false);
-    let orderData = $state<any[]>([]);
-    let orderUnsub: (() => void) | null = null;
+    let orderData = $derived($orderStore ? [$orderStore] : []);
 
     const sampleInstruments = [
         "NSE_INDEX|Nifty 50",
         "NSE_INDEX|Nifty Bank",
         "NSE_INDEX|India VIX",
-        "NSE_FO|41908",
+        "NSE_FO|41908", // Example format
     ];
 
     async function subscribe() {
@@ -59,16 +57,11 @@
         await subscribe();
         connectStream([instrument]);
         rawConnected = true;
-        rawUnsub = subscribeToStream((data) => {
-            rawData = [data, ...rawData.slice(0, 4)];
-        });
     }
 
     function stopRaw() {
         disconnectStream();
-        if (rawUnsub) rawUnsub();
         rawConnected = false;
-        rawData = [];
     }
 
     // Candle
@@ -76,43 +69,33 @@
         await subscribe();
         connectCandleStream([instrument]);
         candleConnected = true;
-        candleUnsub = subscribeToCandleStream((data) => {
-            candleData = [data, ...candleData.slice(0, 4)];
-        });
     }
 
     function stopCandles() {
         disconnectCandleStream();
-        if (candleUnsub) candleUnsub();
         candleConnected = false;
-        candleData = [];
     }
 
     // Orders
     function startOrders() {
         connectOrderStream();
         orderConnected = true;
-        orderUnsub = subscribeToOrderStream((data) => {
-            orderData = [data, ...orderData.slice(0, 4)];
-        });
     }
 
     function stopOrders() {
         disconnectOrderStream();
-        if (orderUnsub) orderUnsub();
         orderConnected = false;
-        orderData = [];
     }
 
     onDestroy(() => {
-        if (rawUnsub) rawUnsub();
-        if (candleUnsub) candleUnsub();
-        if (orderUnsub) orderUnsub();
+        disconnectStream();
+        disconnectCandleStream();
+        disconnectOrderStream();
     });
 </script>
 
 <div class="test-page">
-    <h1>🧪 Stream Test</h1>
+    <h1>🧪 Stream Test (Store Refactor)</h1>
 
     <div class="controls">
         <select bind:value={instrument}>

@@ -33,6 +33,7 @@ class PostgresClient:
         """Initialize database tables."""
         pool = cls.get_pool()
         async with pool.acquire() as conn:
+            # Credentials Table
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS credentials (
                     id SERIAL PRIMARY KEY,
@@ -43,6 +44,19 @@ class PostgresClient:
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
                 );
+            """)
+            
+            # Candles JSON Dump Table (For complete data fidelity)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS candles_json (
+                    id SERIAL PRIMARY KEY,
+                    instrument_key VARCHAR(255) NOT NULL,
+                    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+                    data JSONB NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                CREATE INDEX IF NOT EXISTS idx_candles_json_key_ts ON candles_json(instrument_key, timestamp);
             """)
 
 async def get_postgres() -> asyncpg.Pool:

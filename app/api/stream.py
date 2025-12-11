@@ -5,6 +5,7 @@ from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 from app.db.redis import RedisClient
 from app.services.candle_aggregator import CandleAggregator, parse_raw_tick
+from app.services.candle_persistence import CandlePersistenceService
 
 router = APIRouter(prefix="/stream", tags=["Live Stream"])
 
@@ -170,6 +171,9 @@ async def candle_event_generator(instrument_filter: Optional[Set[str]] = None):
                                 candle = aggregator.add_tick(instrument_key, tick)
                                 
                                 if candle:
+                                    # Persist to DB (Full JSON)
+                                    await CandlePersistenceService.save_candle(candle)
+                                    
                                     candle_json = candle.model_dump_json()
                                     yield f"event: candle\ndata: {candle_json}\n\n"
                         
@@ -180,6 +184,9 @@ async def candle_event_generator(instrument_filter: Optional[Set[str]] = None):
                 
             except asyncio.CancelledError:
                 for candle in aggregator.flush_all():
+                    # Persist flushed candles too
+                    await CandlePersistenceService.save_candle(candle)
+                    
                     candle_json = candle.model_dump_json()
                     yield f"event: candle\ndata: {candle_json}\n\n"
                 raise
@@ -288,4 +295,3 @@ async def sse_order_stream():
             "X-Accel-Buffering": "no"
         }
     )
-

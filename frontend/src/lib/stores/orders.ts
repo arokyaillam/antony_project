@@ -1,17 +1,13 @@
 // Global Orders Stream Store - Order updates SSE
 // Uses /api/v1/stream/orders endpoint
+import { writable, get } from 'svelte/store';
 
 const API_BASE = 'http://localhost:8000';
 
-let eventSource: EventSource | null = null;
-let subscribers: Set<(data: any) => void> = new Set();
-let latestOrder: any = null;
-let isConnected = false;
+export const orderStore = writable<any>(null);
 
-function notifySubscribers(data: any) {
-    latestOrder = data;
-    subscribers.forEach(cb => cb(data));
-}
+let eventSource: EventSource | null = null;
+let isConnected = false;
 
 // Connect to orders SSE stream
 export function connectOrderStream() {
@@ -30,7 +26,7 @@ export function connectOrderStream() {
     eventSource.addEventListener('order', (event: MessageEvent) => {
         try {
             const data = JSON.parse(event.data);
-            notifySubscribers(data);
+            orderStore.set(data);
         } catch {
             // Skip
         }
@@ -51,12 +47,13 @@ export function disconnectOrderStream() {
     }
 }
 
-// Subscribe
+// Subscribe (Legacy wrapper)
 export function subscribeToOrderStream(callback: (data: any) => void) {
-    subscribers.add(callback);
-    return () => {
-        subscribers.delete(callback);
-    };
+    return orderStore.subscribe((data) => {
+        if (data !== null) {
+            callback(data);
+        }
+    });
 }
 
 // Status
@@ -66,5 +63,5 @@ export function isOrderStreamConnected() {
 
 // Get latest
 export function getLatestOrder() {
-    return latestOrder;
+    return get(orderStore);
 }

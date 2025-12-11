@@ -148,7 +148,7 @@ def build_bid_ask_snapshot(quotes: List[BidAskQuote]) -> BidAskSnapshot:
     Quotes list → BidAskSnapshot model
     
     - Walls (qty > 2000)
-    - Best bid/ask
+    - Best bid/ask (Highest Quantity)
     - Spread
     - Total quantities
     """
@@ -158,12 +158,15 @@ def build_bid_ask_snapshot(quotes: List[BidAskQuote]) -> BidAskSnapshot:
     # Extract walls
     bid_walls, ask_walls = extract_walls(quotes)
     
-    # Best bid/ask (first in list = top of book)
-    first = quotes[0]
-    best_bid_price = first.bidP
-    best_bid_qty = int(first.bidQ)
-    best_ask_price = first.askP
-    best_ask_qty = int(first.askQ)
+    # Best bid (Highest Quantity)
+    best_bid_quote = max(quotes, key=lambda q: int(q.bidQ))
+    best_bid_price = best_bid_quote.bidP
+    best_bid_qty = int(best_bid_quote.bidQ)
+
+    # Best ask (Highest Quantity)
+    best_ask_quote = max(quotes, key=lambda q: int(q.askQ))
+    best_ask_price = best_ask_quote.askP
+    best_ask_qty = int(best_ask_quote.askQ)
     
     # Spread
     spread = best_ask_price - best_bid_price

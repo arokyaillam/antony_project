@@ -1,17 +1,15 @@
 // Global Candles Stream Store - 1-Minute candle SSE
 // Uses /api/v1/stream/candles endpoint
+import { writable, get } from 'svelte/store';
+import { updateCandleData } from './candleData';
 
 const API_BASE = 'http://localhost:8000';
 
-let eventSource: EventSource | null = null;
-let subscribers: Set<(data: any) => void> = new Set();
-let currentCandle: any = null;
-let isConnected = false;
+export const candleStore = writable<any>(null);
+// Reactive connection status
+export const isCandleConnected = writable(false);
 
-function notifySubscribers(data: any) {
-    currentCandle = data;
-    subscribers.forEach(cb => cb(data));
-}
+let eventSource: EventSource | null = null;
 
 // Connect to candles SSE stream
 export function connectCandleStream(instruments?: string[]) {
@@ -27,7 +25,7 @@ export function connectCandleStream(instruments?: string[]) {
     eventSource = new EventSource(url);
 
     eventSource.onopen = () => {
-        isConnected = true;
+        isCandleConnected.set(true);
         console.log('Candle stream connected');
     };
 
@@ -35,14 +33,19 @@ export function connectCandleStream(instruments?: string[]) {
     eventSource.addEventListener('candle', (event: MessageEvent) => {
         try {
             const data = JSON.parse(event.data);
-            notifySubscribers(data);
+            candleStore.set(data);
+
+            // Auto-update the structured candle data store
+            if (data && data.instrument_key) {
+                updateCandleData(data);
+            }
         } catch {
             // Skip invalid JSON
         }
     });
 
     eventSource.onerror = () => {
-        isConnected = false;
+        isCandleConnected.set(false);
     };
 }
 
@@ -51,25 +54,26 @@ export function disconnectCandleStream() {
     if (eventSource) {
         eventSource.close();
         eventSource = null;
-        isConnected = false;
+        isCandleConnected.set(false);
         console.log('Candle stream disconnected');
     }
 }
 
-// Subscribe to candle data
+// Subscribe to candle data (Legacy wrapper for backward compatibility)
 export function subscribeToCandleStream(callback: (data: any) => void) {
-    subscribers.add(callback);
-    return () => {
-        subscribers.delete(callback);
-    };
+    return candleStore.subscribe((data) => {
+        if (data !== null) {
+            callback(data);
+        }
+    });
 }
 
-// Status
+// Status (Legacy accessor)
 export function isCandleStreamConnected() {
-    return isConnected;
+    return get(isCandleConnected);
 }
 
 // Get latest candle
 export function getLatestCandle() {
-    return currentCandle;
+    return get(candleStore);
 }

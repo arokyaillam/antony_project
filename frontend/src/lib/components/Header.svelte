@@ -1,7 +1,18 @@
 <!-- Header Component - Top navigation bar -->
 <script lang="ts">
+    import { page } from "$app/stores";
+    import { isCandleConnected } from "$lib/stores/candles";
+    import { isStreamActive } from "$lib/stores/stream";
+    import { isFeedConnected } from "$lib/stores/feed"; // Also check backend feed status
+
     import UserMenu from "./UserMenu.svelte";
     import IndexSelector from "./IndexSelector.svelte";
+
+    // Derived connection status
+    // Connected if: Candle Stream OR Live Stream OR Backend Feed is actively connected
+    let isConnected = $derived(
+        $isCandleConnected || $isStreamActive || $isFeedConnected,
+    );
 </script>
 
 <header class="header">
@@ -15,18 +26,38 @@
     </div>
 
     <nav class="nav">
-        <a href="/dashboard" class="nav-link">Dashboard</a>
-        <a href="/orders" class="nav-link">Orders</a>
-        <a href="/portfolio" class="nav-link">Portfolio</a>
-        <a href="/analyze" class="nav-link">Analyze</a>
+        <!-- Add active class based on current path -->
+        <a
+            href="/dashboard"
+            class="nav-link"
+            class:active={$page.url.pathname === "/dashboard"}>Dashboard</a
+        >
+        <a
+            href="/orders"
+            class="nav-link"
+            class:active={$page.url.pathname === "/orders"}>Orders</a
+        >
+        <a
+            href="/portfolio"
+            class="nav-link"
+            class:active={$page.url.pathname === "/portfolio"}>Portfolio</a
+        >
+        <a
+            href="/analyze"
+            class="nav-link"
+            class:active={$page.url.pathname === "/analyze"}>Analyze</a
+        >
     </nav>
 
     <div class="header-right">
         <IndexSelector />
-        <div class="status-badge">
+
+        <!-- Status Badge: Offline (Red/Gray) vs Live (Green) -->
+        <div class="status-badge" class:offline={!isConnected}>
             <span class="status-dot"></span>
-            <span class="status-text">Live</span>
+            <span class="status-text">{isConnected ? "Live" : "Offline"}</span>
         </div>
+
         <UserMenu />
     </div>
 </header>
@@ -104,12 +135,20 @@
         color: var(--text-primary);
     }
 
+    /* Active State Style */
+    .nav-link.active {
+        color: var(--accent-blue);
+        background: rgba(56, 189, 248, 0.1);
+        font-weight: 600;
+    }
+
     .header-right {
         display: flex;
         align-items: center;
         gap: 16px;
     }
 
+    /* Connected State (Green) */
     .status-badge {
         display: flex;
         align-items: center;
@@ -118,6 +157,7 @@
         background: rgba(0, 210, 106, 0.1);
         border: 1px solid rgba(0, 210, 106, 0.3);
         border-radius: 20px;
+        transition: all 0.3s ease;
     }
 
     .status-dot {
@@ -128,6 +168,29 @@
         animation: pulse 2s infinite;
     }
 
+    .status-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent-green);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Offline State (Red/Gray) */
+    .status-badge.offline {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .status-badge.offline .status-dot {
+        background: var(--accent-red);
+        animation: none;
+    }
+
+    .status-badge.offline .status-text {
+        color: var(--accent-red);
+    }
+
     @keyframes pulse {
         0%,
         100% {
@@ -136,13 +199,5 @@
         50% {
             box-shadow: 0 0 0 6px rgba(0, 210, 106, 0);
         }
-    }
-
-    .status-text {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--accent-green);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
     }
 </style>

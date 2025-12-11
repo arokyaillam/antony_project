@@ -1,19 +1,17 @@
 // Global Stream Store - SSE connection to backend
 // Any component can import and use this store
+import { writable, get } from 'svelte/store';
+import { updateMarketData } from './marketData';
 
 const API_BASE = 'http://localhost:8000';
 
 // Store state
-let eventSource: EventSource | null = null;
-let subscribers: Set<(data: any) => void> = new Set();
-let currentData: any = null;
-let isConnected = false;
+export const streamStore = writable<any>(null);
+// Connection status store
+export const isStreamActive = writable(false);
 
-// Subscribe callback function
-function notifySubscribers(data: any) {
-    currentData = data;
-    subscribers.forEach(cb => cb(data));
-}
+let eventSource: EventSource | null = null;
+let isConnected = false; // Keep local for internal checks if needed, but rely on store
 
 // Connect to SSE stream with optional instrument filter
 export function connectStream(instruments?: string[]) {
@@ -29,21 +27,26 @@ export function connectStream(instruments?: string[]) {
     eventSource = new EventSource(url);
 
     eventSource.onopen = () => {
-        isConnected = true;
+        isStreamActive.set(true);
         console.log('Stream connected');
     };
 
     eventSource.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
-            notifySubscribers(data);
+            streamStore.set(data);
+
+            // Auto-update the structured market data store
+            if (data && data.type === 'live_feed') {
+                updateMarketData(data);
+            }
         } catch {
             // Skip invalid JSON
         }
     };
 
     eventSource.onerror = () => {
-        isConnected = false;
+        isStreamActive.set(false);
     };
 }
 
@@ -52,27 +55,26 @@ export function disconnectStream() {
     if (eventSource) {
         eventSource.close();
         eventSource = null;
-        isConnected = false;
+        isStreamActive.set(false);
         console.log('Stream disconnected');
     }
 }
 
-// Subscribe to stream data
+// Subscribe to stream data (Legacy wrapper)
 export function subscribeToStream(callback: (data: any) => void) {
-    subscribers.add(callback);
-
-    // Return unsubscribe function
-    return () => {
-        subscribers.delete(callback);
-    };
+    return streamStore.subscribe((data) => {
+        if (data !== null) {
+            callback(data);
+        }
+    });
 }
 
-// Get current connection status
+// Get current connection status (Legacy accessor)
 export function isStreamConnected() {
-    return isConnected;
+    return get(isStreamActive);
 }
 
 // Get latest data
 export function getLatestData() {
-    return currentData;
+    return get(streamStore);
 }
