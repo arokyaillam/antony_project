@@ -13,6 +13,9 @@
     let isConnected = $derived(
         $isCandleConnected || $isStreamActive || $isFeedConnected,
     );
+
+    // Cast pathname to string to avoid strict typing issues with generated routes
+    let currentPath = $derived($page.url.pathname as string);
 </script>
 
 <header class="header">
@@ -30,22 +33,22 @@
         <a
             href="/dashboard"
             class="nav-link"
-            class:active={$page.url.pathname === "/dashboard"}>Dashboard</a
+            class:active={currentPath === "/dashboard"}>Dashboard</a
         >
         <a
             href="/orders"
             class="nav-link"
-            class:active={$page.url.pathname === "/orders"}>Orders</a
+            class:active={currentPath === "/orders"}>Orders</a
         >
         <a
             href="/portfolio"
             class="nav-link"
-            class:active={$page.url.pathname === "/portfolio"}>Portfolio</a
+            class:active={currentPath === "/portfolio"}>Portfolio</a
         >
         <a
             href="/analyze"
             class="nav-link"
-            class:active={$page.url.pathname === "/analyze"}>Analyze</a
+            class:active={currentPath === "/analyze"}>Analyze</a
         >
     </nav>
 

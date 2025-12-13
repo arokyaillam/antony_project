@@ -1,16 +1,16 @@
 <script lang="ts">
-    import IndexSelector from "$lib/components/IndexSelector.svelte";
-    import OptionChainTable from "$lib/components/OptionChainTable.svelte";
+    import PatternTable from "$lib/components/PatternTable.svelte";
+    import PriceActionTable from "$lib/components/PriceActionTable.svelte";
 </script>
 
 <div class="analysis-page">
     <div class="header-section">
-        <h1>Option Chain Analysis</h1>
-        <IndexSelector />
+        <h1>Pattern Analysis</h1>
     </div>
 
     <div class="content-section">
-        <OptionChainTable />
+        <PatternTable />
+        <PriceActionTable />
     </div>
 </div>
 
