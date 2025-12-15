@@ -8,7 +8,6 @@
         monitorInstruments,
         type LiveQuote,
     } from "$lib/stores/liveFeed";
-    import { onMount } from "svelte";
 
     export let instrumentKey: string;
     export let title: string; // e.g. "MAX CE OI"
@@ -69,10 +68,17 @@
     };
 
     // Derived Display Values
-    // Header should always show Day Change (not 1m change)
+    // Header should show Day Change from OPEN (User Request: "open - ltp")
     $: displayLtp = liveData?.ltp || candleData?.close;
-    $: displayChg = liveData?.change; // No fallback to 1m diff
-    $: displayChgPct = liveData?.changePercent;
+
+    // Calculate Change from Open
+    $: activeOpen = liveData?.open || candleData?.open;
+    $: displayChg =
+        displayLtp && activeOpen ? displayLtp - activeOpen : undefined;
+    $: displayChgPct =
+        displayChg !== undefined && activeOpen
+            ? (displayChg / activeOpen) * 100
+            : 0;
 
     // OHLC (Day)
     $: displayOpen = liveData?.open;
