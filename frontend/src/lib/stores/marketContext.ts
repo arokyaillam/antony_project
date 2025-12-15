@@ -27,8 +27,36 @@ const initialState: MarketContextState = {
     chain: {}
 };
 
+import { browser } from '$app/environment';
+
+const STORAGE_KEY = 'market_context_v1';
+
 function createMarketContext() {
-    const { subscribe, set, update } = writable<MarketContextState>(initialState);
+    // 1. Recover from localStorage if available
+    let startState = initialState;
+    if (browser) {
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                startState = JSON.parse(stored);
+            }
+        } catch (e) {
+            console.warn("Failed to load market context", e);
+        }
+    }
+
+    const { subscribe, set, update } = writable<MarketContextState>(startState);
+
+    // 2. Persist on change
+    if (browser) {
+        subscribe((value) => {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+            } catch (e) {
+                console.warn("Failed to save market context", e);
+            }
+        });
+    }
 
     return {
         subscribe,
