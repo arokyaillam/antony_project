@@ -3,7 +3,7 @@
 
 import { writable, get } from 'svelte/store';
 
-const API_BASE = 'http://localhost:8000';
+import { API_BASE } from '$lib/config';
 
 // Global Connection Status Store
 export const isFeedConnected = writable(false);

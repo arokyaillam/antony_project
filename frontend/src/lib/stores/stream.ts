@@ -3,7 +3,7 @@
 import { writable, get } from 'svelte/store';
 import { updateMarketData } from './marketData';
 
-const API_BASE = 'http://localhost:8000';
+import { API_BASE } from '$lib/config';
 
 // Store state
 export const streamStore = writable<any>(null);

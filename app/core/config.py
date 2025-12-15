@@ -6,9 +6,9 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Upstox API
-    UPSTOX_API_KEY: str
-    UPSTOX_API_SECRET: str
-    UPSTOX_REDIRECT_URI: str
+    UPSTOX_API_KEY: str = ""
+    UPSTOX_API_SECRET: str = ""
+    UPSTOX_REDIRECT_URI: str = ""
     UPSTOX_ACCESS_TOKEN: str = ""
     
     # Sandbox Mode - Real money இல்லாம testing
@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_SERVER: str
-    POSTGRES_PORT: str
+    POSTGRES_PORT: str = "5432"
     POSTGRES_DB: str
     
     @property
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
             return self.UPSTOX_SANDBOX_TOKEN
         return self.UPSTOX_ACCESS_TOKEN
     
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
 settings = Settings()
 

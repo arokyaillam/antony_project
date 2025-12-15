@@ -3,7 +3,7 @@
     import { onMount } from "svelte";
     import { checkConnectionStatus, isFeedConnected } from "$lib/stores/feed";
 
-    const API_BASE = "http://localhost:8000";
+    import { API_BASE } from "$lib/config";
 
     // Default index keys to subscribe
     const DEFAULT_KEYS = [
