@@ -2,6 +2,7 @@
     import IndexSelector from "$lib/components/IndexSelector.svelte";
     import PriceActionTable from "$lib/components/PriceActionTable.svelte";
     import IndexIndicatorTable from "$lib/components/IndexIndicatorTable.svelte";
+    import PatternTable from "$lib/components/PatternTable.svelte";
 </script>
 
 <div class="analyze-page">
@@ -15,6 +16,9 @@
 
     <!-- Market Depth / Price Action Table -->
     <PriceActionTable />
+
+    <!-- Pattern Analysis Table -->
+    <PatternTable />
 </div>
 
 <style>
