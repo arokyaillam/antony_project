@@ -1,5 +1,5 @@
 <script lang="ts">
-    import NiftyCard from "$lib/components/NiftyCard.svelte";
+    import ActiveIndexCard from "$lib/components/ActiveIndexCard.svelte";
     import ActiveStrikes from "$lib/components/ActiveStrikes.svelte";
 </script>
 
@@ -7,7 +7,7 @@
     <h1 class="page-title">📊 Live Dashboard</h1>
 
     <section class="index-cards">
-        <NiftyCard />
+        <ActiveIndexCard />
     </section>
 
     <!-- Active Strikes Section -->

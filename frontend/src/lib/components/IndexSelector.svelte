@@ -25,6 +25,10 @@
     const indices = [
         { key: "NSE_INDEX|Nifty 50", name: "Nifty 50" },
         { key: "NSE_INDEX|Nifty Bank", name: "Nifty Bank" },
+        { key: "NSE_INDEX|Nifty Fin Service", name: "Nifty Fin Service" },
+        { key: "NSE_INDEX|Nifty Midcap Select", name: "Nifty Midcap Select" },
+        { key: "BSE_INDEX|SENSEX", name: "Sensex" },
+        { key: "BSE_INDEX|BANKEX", name: "Bankex" },
     ];
 
     // State
