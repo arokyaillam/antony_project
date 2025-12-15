@@ -129,6 +129,7 @@ class Candle1M(BaseModel):
     # ═══════════════════════════════════════════════════════════════════════════
     vtt: int = Field(0, description="Volume Traded Today (cumulative)")
     volume_1m: int = Field(0, description="Volume traded in this 1-min candle")
+    volume_diff: int = Field(0, description="Volume change (current 1m Vol - previous 1m Vol)")
     
     # ═══════════════════════════════════════════════════════════════════════════
     # 6️⃣ OI (Open Interest) + Diff

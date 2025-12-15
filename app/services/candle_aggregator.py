@@ -192,7 +192,7 @@ def build_bid_ask_snapshot(quotes: List[BidAskQuote]) -> BidAskSnapshot:
 # CANDLE BUILDER - Multiple Ticks → Candle1M
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def build_candle(instrument_key: str, minute_ts: int, ticks: List[RawTick]) -> Candle1M:
+def build_candle(instrument_key: str, minute_ts: int, ticks: List[RawTick], prev_volume: int = 0) -> Candle1M:
     """
     ஒரு minute's ticks → Candle1M object
     
@@ -200,12 +200,13 @@ def build_candle(instrument_key: str, minute_ts: int, ticks: List[RawTick]) -> C
         instrument_key: Instrument identifier
         minute_ts: Floored minute timestamp in ms
         ticks: List of ticks within this minute
+        prev_volume: Volume of the previous candle (for diff calculation)
     
     Logic:
         First tick = Open values
         Last tick = Close values
         Max/Min = High/Low
-        Diffs = Close - Open
+        diffs = Close - Open
     """
     if not ticks:
         raise ValueError("Cannot build candle from empty tick list")
@@ -255,6 +256,11 @@ def build_candle(instrument_key: str, minute_ts: int, ticks: List[RawTick]) -> C
     # Volume in this minute
     volume_1m = last.vtt - first.vtt
     
+    # Volume Diff (Change from prev candle)
+    # If prev_volume is 0 (first candle), diff is 0 or volume itself? 
+    # Usually diff should be 0 if no prev context.
+    volume_diff = volume_1m - prev_volume if prev_volume > 0 else 0
+    
     # OI diff
     oi_diff = last.oi - first.oi
     
@@ -296,6 +302,7 @@ def build_candle(instrument_key: str, minute_ts: int, ticks: List[RawTick]) -> C
         # 5. VTT / Volume
         vtt=last.vtt,
         volume_1m=volume_1m,
+        volume_diff=volume_diff,
         
         # 6. OI
         oi=last.oi,
@@ -340,6 +347,8 @@ class CandleAggregator:
         self._buffers: Dict[str, Dict[int, List[RawTick]]] = {}
         # {instrument_key: last_completed_minute_ts}
         self._last_candle_minute: Dict[str, int] = {}
+        # {instrument_key: last_completed_candle_volume}
+        self._last_candle_volume: Dict[str, int] = {}
     
     def add_tick(self, instrument_key: str, tick: RawTick) -> Optional[Candle1M]:
         """
@@ -366,7 +375,14 @@ class CandleAggregator:
             if tick_minute > last_minute and last_minute in buffer:
                 ticks = buffer[last_minute]
                 if ticks:
-                    completed_candle = build_candle(instrument_key, last_minute, ticks)
+                    # Get prev volume for diff
+                    prev_vol = self._last_candle_volume.get(instrument_key, 0)
+                    
+                    completed_candle = build_candle(instrument_key, last_minute, ticks, prev_vol)
+                    
+                    # Update last volume
+                    self._last_candle_volume[instrument_key] = completed_candle.volume_1m
+                    
                 # Clear old buffer
                 del buffer[last_minute]
         
@@ -456,5 +472,11 @@ def aggregate_ticks_batch(instrument_key: str, ticks: List[RawTick]) -> List[Can
     # Sort by timestamp and return
     candles = list(grouped.values())
     candles.sort(key=lambda c: c.timestamp)
+    
+    # Calculate volume_diff iteratively
+    for i in range(1, len(candles)):
+        candles[i].volume_diff = candles[i].volume_1m - candles[i-1].volume_1m
+    
+    # First candle diff is 0 (already default)
     
     return candles

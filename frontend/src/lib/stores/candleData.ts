@@ -51,6 +51,7 @@ export interface CandleDetails {
     atp_diff: number;
     vtt: number;
     volume_1m: number;
+    volume_diff: number;
 
     oi: number;
     oi_diff: number;

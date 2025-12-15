@@ -255,7 +255,7 @@
                 {@const ceOi = ceData ? ceData.oi : 0}
                 {@const ceOiChg = ceData ? ceData.oi_diff : 0}
                 {@const ceVol = ceData ? ceData.volume_1m : 0}
-                {@const ceVolChg = 0}
+                {@const ceVolChg = ceData ? ceData.volume_diff : 0}
                 {@const cePattern = getPattern(ceLtpChg, ceOiChg)}
 
                 <!-- PE Calculations -->
@@ -264,7 +264,7 @@
                 {@const peOi = peData ? peData.oi : 0}
                 {@const peOiChg = peData ? peData.oi_diff : 0}
                 {@const peVol = peData ? peData.volume_1m : 0}
-                {@const peVolChg = 0}
+                {@const peVolChg = peData ? peData.volume_diff : 0}
                 {@const pePattern = getPattern(peLtpChg, peOiChg)}
 
                 <tr

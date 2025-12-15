@@ -1,5 +1,7 @@
 <!-- Home Page - Landing/Dashboard redirect -->
 <script lang="ts">
+    import { isFeedConnected } from "$lib/stores/feed";
+    import ActiveStrikes from "$lib/components/ActiveStrikes.svelte";
 </script>
 
 <div class="home-container">
@@ -15,16 +17,30 @@
             </div>
             <div class="status-card">
                 <span class="icon">📊</span>
-                <span class="label">Market</span>
-                <span class="value text-muted">Waiting...</span>
+                <span class="label">Feed</span>
+                <span
+                    class="value"
+                    class:text-green={$isFeedConnected}
+                    class:text-muted={!$isFeedConnected}
+                >
+                    {$isFeedConnected ? "Live" : "Waiting..."}
+                </span>
             </div>
         </div>
+
+        <!-- Active Strikes Dashboard -->
+        <ActiveStrikes />
 
         <div class="cta-buttons">
             <a href="/settings/credentials" class="btn-primary">
                 🔑 Setup API Credentials
             </a>
-            <a href="/dashboard" class="btn-secondary"> 📊 Go to Dashboard </a>
+            <a href="/test/option-analysis" class="btn-secondary">
+                📊 Go to Analysis
+            </a>
+            <a href="/settings/connect" class="btn-secondary">
+                ⚙️ Connect Feed
+            </a>
         </div>
     </div>
 </div>
