@@ -64,182 +64,135 @@
     <h2 class="section-title">🔥 Active Strikes</h2>
 
     {#if activeData.length > 0}
-        <div class="cards-grid">
-            <!-- Highest CE OI -->
-            {#if maxCeOI?.ceData}
-                <div class="card card-ce-oi">
-                    <div class="card-header">
-                        <span class="badge">HIGHEST CE OI</span>
-                        <span class="strike">{maxCeOI.strike} CE</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="row main-val">
-                            <span class="label">OI</span>
-                            <span class="val">{fmt(maxCeOI.ceData.oi)}</span>
-                        </div>
-                        <div class="row">
-                            <span class="label">Change</span>
-                            <span
-                                class="val"
-                                class:pos={maxCeOI.ceData.oi_diff > 0}
-                                class:neg={maxCeOI.ceData.oi_diff < 0}
-                                >{fmt(maxCeOI.ceData.oi_diff)}</span
-                            >
-                        </div>
-                        <div class="divider"></div>
-                        <div class="row">
-                            <span class="label">LTP</span>
-                            <span class="val"
-                                >{fmtPr(maxCeOI.ceData.close)}</span
-                            >
-                        </div>
-                        <div class="row">
-                            <span class="label">IV</span>
-                            <span class="val">{fmtG(maxCeOI.ceData.iv)}</span>
-                        </div>
-                        <div class="row">
-                            <span class="label">Delta</span>
-                            <span class="val"
-                                >{fmtG(maxCeOI.ceData.greeks.delta)}</span
-                            >
-                        </div>
-                    </div>
-                </div>
-            {/if}
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Strike</th>
+                        <th>OI (Chg)</th>
+                        <th>Vol (Chg)</th>
+                        <th>LTP (Chg)</th>
+                        <th>Bid (Qty)</th>
+                        <th>Ask (Qty)</th>
+                        <th>ATP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Helper to render a row -->
+                    {#snippet row(title, data, strike, type)}
+                        {#if data}
+                            <tr class="row-{type}">
+                                <td class="category-cell">
+                                    <span class="badge">{title}</span>
+                                </td>
+                                <td class="strike-cell">
+                                    <span class="strike-val"
+                                        >{strike}
+                                        {type === "ce" ? "CE" : "PE"}</span
+                                    >
+                                </td>
+                                <td>
+                                    <div class="cell-group">
+                                        <span class="val">{fmt(data.oi)}</span>
+                                        <span
+                                            class="sub-val"
+                                            class:pos={data.oi_diff > 0}
+                                            class:neg={data.oi_diff < 0}
+                                        >
+                                            {fmt(data.oi_diff)}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-group">
+                                        <span class="val"
+                                            >{fmt(data.volume_1m)}</span
+                                        >
+                                        <span
+                                            class="sub-val"
+                                            class:pos={data.volume_diff > 0}
+                                            class:neg={data.volume_diff < 0}
+                                        >
+                                            {fmt(data.volume_diff)}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-group">
+                                        <span class="val"
+                                            >{fmtPr(data.close)}</span
+                                        >
+                                        <span
+                                            class="sub-val"
+                                            class:pos={data.price_diff > 0}
+                                            class:neg={data.price_diff < 0}
+                                        >
+                                            {fmtPr(data.price_diff)}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-group">
+                                        <span class="val"
+                                            >{fmtPr(
+                                                data.bid_ask.best_bid_price,
+                                            )}</span
+                                        >
+                                        <span class="qty-val"
+                                            >({fmt(
+                                                data.bid_ask.best_bid_qty,
+                                            )})</span
+                                        >
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-group">
+                                        <span class="val"
+                                            >{fmtPr(
+                                                data.bid_ask.best_ask_price,
+                                            )}</span
+                                        >
+                                        <span class="qty-val"
+                                            >({fmt(
+                                                data.bid_ask.best_ask_qty,
+                                            )})</span
+                                        >
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="val">{fmtPr(data.atp)}</span>
+                                </td>
+                            </tr>
+                        {/if}
+                    {/snippet}
 
-            <!-- Highest PE OI -->
-            {#if maxPeOI?.peData}
-                <div class="card card-pe-oi">
-                    <div class="card-header">
-                        <span class="badge">HIGHEST PE OI</span>
-                        <span class="strike">{maxPeOI.strike} PE</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="row main-val">
-                            <span class="label">OI</span>
-                            <span class="val">{fmt(maxPeOI.peData.oi)}</span>
-                        </div>
-                        <div class="row">
-                            <span class="label">Change</span>
-                            <span
-                                class="val"
-                                class:pos={maxPeOI.peData.oi_diff > 0}
-                                class:neg={maxPeOI.peData.oi_diff < 0}
-                                >{fmt(maxPeOI.peData.oi_diff)}</span
-                            >
-                        </div>
-                        <div class="divider"></div>
-                        <div class="row">
-                            <span class="label">LTP</span>
-                            <span class="val"
-                                >{fmtPr(maxPeOI.peData.close)}</span
-                            >
-                        </div>
-                        <div class="row">
-                            <span class="label">IV</span>
-                            <span class="val">{fmtG(maxPeOI.peData.iv)}</span>
-                        </div>
-                        <div class="row">
-                            <span class="label">Delta</span>
-                            <span class="val"
-                                >{fmtG(maxPeOI.peData.greeks.delta)}</span
-                            >
-                        </div>
-                    </div>
-                </div>
-            {/if}
-
-            <!-- Highest CE Volume -->
-            {#if maxCeVol?.ceData}
-                <div class="card card-ce-vol">
-                    <div class="card-header">
-                        <span class="badge">HIGHEST CE VOL</span>
-                        <span class="strike">{maxCeVol.strike} CE</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="row main-val">
-                            <span class="label">Volume</span>
-                            <span class="val"
-                                >{fmt(maxCeVol.ceData.volume_1m)}</span
-                            >
-                        </div>
-                        <div class="row">
-                            <span class="label">Change</span>
-                            <span
-                                class="val"
-                                class:pos={maxCeVol.ceData.volume_diff > 0}
-                                class:neg={maxCeVol.ceData.volume_diff < 0}
-                                >{fmt(maxCeVol.ceData.volume_diff)}</span
-                            >
-                        </div>
-                        <div class="divider"></div>
-                        <div class="row">
-                            <span class="label">LTP</span>
-                            <span class="val"
-                                >{fmtPr(maxCeVol.ceData.close)}</span
-                            >
-                        </div>
-                        <div class="row">
-                            <span class="label">Vega</span>
-                            <span class="val"
-                                >{fmtG(maxCeVol.ceData.greeks.vega)}</span
-                            >
-                        </div>
-                        <div class="row">
-                            <span class="label">Gamma</span>
-                            <span class="val"
-                                >{fmtG(maxCeVol.ceData.greeks.gamma)}</span
-                            >
-                        </div>
-                    </div>
-                </div>
-            {/if}
-
-            <!-- Highest PE Volume -->
-            {#if maxPeVol?.peData}
-                <div class="card card-pe-vol">
-                    <div class="card-header">
-                        <span class="badge">HIGHEST PE VOL</span>
-                        <span class="strike">{maxPeVol.strike} PE</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="row main-val">
-                            <span class="label">Volume</span>
-                            <span class="val"
-                                >{fmt(maxPeVol.peData.volume_1m)}</span
-                            >
-                        </div>
-                        <div class="row">
-                            <span class="label">Change</span>
-                            <span
-                                class="val"
-                                class:pos={maxPeVol.peData.volume_diff > 0}
-                                class:neg={maxPeVol.peData.volume_diff < 0}
-                                >{fmt(maxPeVol.peData.volume_diff)}</span
-                            >
-                        </div>
-                        <div class="divider"></div>
-                        <div class="row">
-                            <span class="label">LTP</span>
-                            <span class="val"
-                                >{fmtPr(maxPeVol.peData.close)}</span
-                            >
-                        </div>
-                        <div class="row">
-                            <span class="label">Vega</span>
-                            <span class="val"
-                                >{fmtG(maxPeVol.peData.greeks.vega)}</span
-                            >
-                        </div>
-                        <div class="row">
-                            <span class="label">Gamma</span>
-                            <span class="val"
-                                >{fmtG(maxPeVol.peData.greeks.gamma)}</span
-                            >
-                        </div>
-                    </div>
-                </div>
-            {/if}
+                    {@render row(
+                        "MAX CE OI",
+                        maxCeOI?.ceData,
+                        maxCeOI?.strike,
+                        "ce",
+                    )}
+                    {@render row(
+                        "MAX PE OI",
+                        maxPeOI?.peData,
+                        maxPeOI?.strike,
+                        "pe",
+                    )}
+                    {@render row(
+                        "MAX CE VOL",
+                        maxCeVol?.ceData,
+                        maxCeVol?.strike,
+                        "ce",
+                    )}
+                    {@render row(
+                        "MAX PE VOL",
+                        maxPeVol?.peData,
+                        maxPeVol?.strike,
+                        "pe",
+                    )}
+                </tbody>
+            </table>
         </div>
     {:else}
         <div class="empty-msg">
@@ -270,86 +223,84 @@
         text-align: center;
     }
 
-    .cards-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 16px;
-    }
-
-    .card {
+    .table-responsive {
+        overflow-x: auto;
         background: var(--bg-card, #1e1e1e);
         border: 1px solid var(--border-color, #333);
         border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s;
-    }
-    .card:hover {
-        transform: translateY(-2px);
     }
 
-    /* Highlight Colors */
-    .card-ce-oi,
-    .card-ce-vol {
-        border-top: 3px solid #22c55e; /* Green for Calls */
-    }
-    .card-pe-oi,
-    .card-pe-vol {
-        border-top: 3px solid #ef4444; /* Red for Puts */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
     }
 
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
+    th {
+        text-align: left;
+        padding: 10px 12px;
+        color: #71717a;
+        font-weight: 600;
+        border-bottom: 1px solid #333;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    .badge {
-        font-size: 10px;
-        font-weight: 800;
-        background: rgba(255, 255, 255, 0.1);
-        padding: 2px 6px;
-        border-radius: 4px;
-        color: #a1a1aa;
-    }
-    .strike {
-        font-size: 16px;
-        font-weight: 800;
-        color: #fbbf24;
-    }
-
-    .card-body {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 12px;
+    td {
+        padding: 8px 12px;
+        border-bottom: 1px solid #333;
+        vertical-align: middle;
         color: #d4d4d8;
     }
 
-    .label {
-        color: #71717a;
-    }
-    .val {
-        font-family: "JetBrains Mono", monospace;
-        font-weight: 600;
+    tr:last-child td {
+        border-bottom: none;
     }
 
-    .main-val {
-        font-size: 14px;
+    .row-ce td.category-cell {
+        border-left: 3px solid #22c55e;
+    }
+    .row-pe td.category-cell {
+        border-left: 3px solid #ef4444;
+    }
+
+    .badge {
+        font-size: 11px;
+        font-weight: 800;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 4px 8px;
+        border-radius: 4px;
+        color: #e4e4e7;
+    }
+
+    .strike-val {
+        color: #fbbf24;
         font-weight: 700;
+        font-family: "JetBrains Mono", monospace;
+    }
+
+    .cell-group {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .val {
+        font-weight: 600;
+        font-family: "JetBrains Mono", monospace;
         color: #fff;
     }
 
-    .divider {
-        height: 1px;
-        background: #333;
-        margin: 4px 0;
+    .sub-val {
+        font-size: 11px;
+        font-family: "JetBrains Mono", monospace;
+        color: #71717a;
+    }
+
+    .qty-val {
+        font-size: 11px;
+        color: #a1a1aa;
     }
 
     .pos {
