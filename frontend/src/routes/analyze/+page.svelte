@@ -3,6 +3,7 @@
     import PriceActionTable from "$lib/components/PriceActionTable.svelte";
     import IndexIndicatorTable from "$lib/components/IndexIndicatorTable.svelte";
     import PatternTable from "$lib/components/PatternTable.svelte";
+    import GreeksTable from "$lib/components/GreeksTable.svelte";
 </script>
 
 <div class="analyze-page">
@@ -14,8 +15,11 @@
     <!-- Indicator (ATM Straddle) Table -->
     <IndexIndicatorTable />
 
-    <!-- Market Depth / Price Action Table -->
+    <!-- Price Action / Market Depth Table -->
     <PriceActionTable />
+
+    <!-- Greeks Analysis Table -->
+    <GreeksTable />
 
     <!-- Pattern Analysis Table -->
     <PatternTable />
