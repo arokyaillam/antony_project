@@ -39,7 +39,22 @@
 
     function getLTP(key: string | undefined): number {
         if (!key) return 0;
-        return $candleDataStore[key]?.close || $marketDataStore[key]?.ltp || 0;
+        const feed = $marketDataStore[key];
+        const feedLtp =
+            feed?.fullFeed?.marketFF?.ltpc?.ltp ||
+            feed?.fullFeed?.indexFF?.ltpc?.ltp ||
+            0;
+        return $candleDataStore[key]?.close || feedLtp || 0;
+    }
+
+    function getPrevClose(key: string | undefined): number {
+        if (!key) return 0;
+        const feed = $marketDataStore[key];
+        const feedCp =
+            feed?.fullFeed?.marketFF?.ltpc?.cp ||
+            feed?.fullFeed?.indexFF?.ltpc?.cp ||
+            0;
+        return $candleDataStore[key]?.prev_close || feedCp || 0;
     }
 
     type Pattern =
@@ -81,8 +96,8 @@
 
         {@const ceLtp = getLTP(ceKey)}
         {@const peLtp = getLTP(peKey)}
-        {@const ceLtpChg = ceData?.ltp_diff || 0}
-        {@const peLtpChg = peData?.ltp_diff || 0}
+        {@const ceLtpChg = ceLtp - getPrevClose(ceKey)}
+        {@const peLtpChg = peLtp - getPrevClose(peKey)}
         {@const ceOiChg = ceData?.oi_diff || 0}
         {@const peOiChg = peData?.oi_diff || 0}
         {@const cePattern = getPattern(ceLtpChg, ceOiChg)}
