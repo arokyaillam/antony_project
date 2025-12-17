@@ -65,6 +65,7 @@ from app.api.instrument import router as instrument_router
 from app.api.gtt import router as gtt_router
 from app.api.portfolio import router as portfolio_router
 from app.api.order import router as order_router
+from app.api.history import router as history_router
 
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(feed_router, prefix=settings.API_V1_STR)
@@ -73,6 +74,7 @@ app.include_router(instrument_router, prefix=settings.API_V1_STR)
 app.include_router(gtt_router, prefix=settings.API_V1_STR)
 app.include_router(portfolio_router, prefix=settings.API_V1_STR)
 app.include_router(order_router, prefix=settings.API_V1_STR)
+app.include_router(history_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/callback")
