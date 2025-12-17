@@ -56,7 +56,8 @@ export interface MarketFF {
 }
 
 export interface FullFeed {
-    marketFF: MarketFF;
+    marketFF?: MarketFF;
+    indexFF?: MarketFF; // Index feeds use this key
 }
 
 export interface InstrumentFeed {
@@ -78,10 +79,10 @@ export const marketDataStore = writable<Record<string, InstrumentFeed>>({});
 
 // Helper to update the store from the socket response
 export function updateMarketData(data: LiveFeedData) {
-    if (data.type === 'live_feed' && data.feeds) {
+    // Relaxed check: data.feeds is the critical part
+    if (data && data.feeds) {
         marketDataStore.update(current => {
             // Merge new feeds into the existing state
-            // This ensures we don't lose data for instruments not in the current packet
             return {
                 ...current,
                 ...data.feeds
@@ -99,5 +100,7 @@ export function getInstrumentData(key: string): InstrumentFeed | null {
 // Helper: Get LTP for a specific instrument
 export function getLTP(key: string): number {
     const data = get(marketDataStore);
-    return data[key]?.fullFeed?.marketFF?.ltpc?.ltp || 0;
+    const feed = data[key]?.fullFeed;
+    const ff = feed?.marketFF || feed?.indexFF;
+    return ff?.ltpc?.ltp || 0;
 }

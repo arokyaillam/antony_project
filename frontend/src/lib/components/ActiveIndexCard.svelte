@@ -1,24 +1,32 @@
 <script lang="ts">
     import { marketContext } from "$lib/stores/marketContext";
-    import { liveFeedStore } from "$lib/stores/liveFeed";
     import { isFeedConnected } from "$lib/stores/feed";
+    import { marketDataStore } from "$lib/stores/marketData";
 
     // Computed properties based on the selected index
     let selectedIndexKey = $derived($marketContext.indexKey);
     let indexName = $derived(selectedIndexKey.split("|")[1] || "Select Index");
 
     // Get live data for the selected index
-    let indexData = $derived($liveFeedStore[selectedIndexKey]);
+    let indexData = $derived($marketDataStore[selectedIndexKey]);
 
     // Extract values with safe defaults
-    let ltp = $derived(indexData?.ltp || 0);
-    let open = $derived(indexData?.open || 0);
-    let high = $derived(indexData?.high || 0);
-    let low = $derived(indexData?.low || 0);
-    let close = $derived(indexData?.close || ltp); // Fallback to LTP if close/prevClose missing
-    let change = $derived(indexData?.change || 0);
-    let changePercent = $derived(indexData?.changePercent || 0);
-    let lastTradedTime = $derived(indexData?.lastTradedTime || 0);
+    let fullFeed = $derived(indexData?.fullFeed);
+    let indexFF = $derived(fullFeed?.indexFF || fullFeed?.marketFF);
+    let ltpc = $derived(indexFF?.ltpc);
+    let ohlc = $derived(indexFF?.marketOHLC?.ohlc?.[0]);
+
+    let ltp = $derived(ltpc?.ltp || 0);
+    // Prioritize ltpc.cp (Closing Price) but fallback to OHLC close if needed
+    let close = $derived(ltpc?.cp || ohlc?.close || ltp);
+    let open = $derived(ohlc?.open || 0);
+    let high = $derived(ohlc?.high || 0);
+    let low = $derived(ohlc?.low || 0);
+    let lastTradedTime = $derived(Number(ltpc?.ltt) || 0);
+
+    // Calculate change
+    let change = $derived(ltp && close ? ltp - close : 0);
+    let changePercent = $derived(close ? (change / close) * 100 : 0);
 
     // Connection status
     let isConnected = $derived($isFeedConnected && !!indexData);

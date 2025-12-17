@@ -33,19 +33,18 @@
         <table class="greeks-table">
             <thead>
                 <tr class="main-header">
-                    <th colspan="12" class="call-side">CALLS (CE)</th>
+                    <th colspan="10" class="call-side">CALLS (CE)</th>
                     <th class="strike-col">STRIKE</th>
-                    <th colspan="12" class="put-side">PUTS (PE)</th>
+                    <th colspan="10" class="put-side">PUTS (PE)</th>
                 </tr>
                 <tr class="sub-header">
                     <!-- CE (Mirrored: IV -> Delta) -->
                     <th>IV Diff</th>
                     <th>IV</th>
-                    <th>Rho Diff</th>
-                    <th>Rho</th>
                     <th>Vega Diff</th>
                     <th>Vega</th>
                     <th>Gamma Diff</th>
+
                     <th>Gamma</th>
                     <th>Theta Diff</th>
                     <th>Theta</th>
@@ -63,9 +62,8 @@
                     <th>Gamma Diff</th>
                     <th>Vega</th>
                     <th>Vega Diff</th>
-                    <th>Rho</th>
-                    <th>Rho Diff</th>
                     <th>IV</th>
+
                     <th>IV Diff</th>
                 </tr>
             </thead>
@@ -95,14 +93,6 @@
                             >{fmtG(ceData?.iv_diff)}</td
                         >
                         <td class="cell-val">{fmtG(ceData?.iv)}</td>
-
-                        <td
-                            class="cell-muted"
-                            class:pos={pos(ceData?.rho_diff)}
-                            class:neg={neg(ceData?.rho_diff)}
-                            >{fmtG(ceData?.rho_diff)}</td
-                        >
-                        <td class="cell-val">{fmtG(ceG?.rho)}</td>
 
                         <td
                             class="cell-muted"
@@ -170,14 +160,6 @@
                             class:pos={pos(peData?.vega_diff)}
                             class:neg={neg(peData?.vega_diff)}
                             >{fmtG(peData?.vega_diff)}</td
-                        >
-
-                        <td class="cell-val">{fmtG(peG?.rho)}</td>
-                        <td
-                            class="cell-muted"
-                            class:pos={pos(peData?.rho_diff)}
-                            class:neg={neg(peData?.rho_diff)}
-                            >{fmtG(peData?.rho_diff)}</td
                         >
 
                         <td class="cell-val">{fmtG(peData?.iv)}</td>

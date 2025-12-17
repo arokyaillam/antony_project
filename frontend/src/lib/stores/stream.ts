@@ -37,7 +37,7 @@ export function connectStream(instruments?: string[]) {
             streamStore.set(data);
 
             // Auto-update the structured market data store
-            if (data && data.type === 'live_feed') {
+            if (data) {
                 updateMarketData(data);
             }
         } catch {

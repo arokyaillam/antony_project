@@ -1,9 +1,7 @@
 <script lang="ts">
     import IndexSelector from "$lib/components/IndexSelector.svelte";
-    import PriceActionTable from "$lib/components/PriceActionTable.svelte";
+    import UnifiedStrikeTable from "$lib/components/UnifiedStrikeTable.svelte";
     import IndexIndicatorTable from "$lib/components/IndexIndicatorTable.svelte";
-    import PatternTable from "$lib/components/PatternTable.svelte";
-    import GreeksTable from "$lib/components/GreeksTable.svelte";
 </script>
 
 <div class="analyze-page">
@@ -15,14 +13,8 @@
     <!-- Indicator (ATM Straddle) Table -->
     <IndexIndicatorTable />
 
-    <!-- Price Action / Market Depth Table -->
-    <PriceActionTable />
-
-    <!-- Greeks Analysis Table -->
-    <GreeksTable />
-
-    <!-- Pattern Analysis Table -->
-    <PatternTable />
+    <!-- Unified Strike Analysis Table -->
+    <UnifiedStrikeTable />
 </div>
 
 <style>

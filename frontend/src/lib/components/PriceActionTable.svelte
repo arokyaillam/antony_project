@@ -19,6 +19,15 @@
         return $candleDataStore[key] || null;
     }
 
+    // Ratio Helper
+    const getRatio = (b: number | undefined, a: number | undefined) => {
+        const bid = b || 0;
+        const ask = a || 0;
+        if (bid === 0 && ask === 0) return 1.0;
+        if (ask === 0) return bid > 0 ? 100 : 0;
+        return bid / ask;
+    };
+
     // Formatter
     const fmt = (n: number | undefined) => (n ? n.toLocaleString() : "-");
     const fmtPrz = (n: number | undefined) => (n ? n.toFixed(2) : "-");
@@ -61,18 +70,8 @@
             }),
         );
 
-    let maxCeTotBid = $derived(
-        getMax(
-            sortedStrikes.map((s) => $marketContext.chain[s].CE),
-            (c) => c.bid_ask?.total_bid_qty || 0,
-        ),
-    );
-    let maxCeTotAsk = $derived(
-        getMax(
-            sortedStrikes.map((s) => $marketContext.chain[s].CE),
-            (c) => c.bid_ask?.total_ask_qty || 0,
-        ),
-    );
+    // REMOVED TotBid/TotAsk Max Derivations
+
     let maxCeBestBidQ = $derived(
         getMax(
             sortedStrikes.map((s) => $marketContext.chain[s].CE),
@@ -85,31 +84,11 @@
             (c) => c.bid_ask?.best_ask_qty || 0,
         ),
     );
-    let maxCeBidWall = $derived(
-        getMax(
-            sortedStrikes.map((s) => $marketContext.chain[s].CE),
-            (c) => getWallLen(c.bid_ask?.bid_walls),
-        ),
-    );
-    let maxCeAskWall = $derived(
-        getMax(
-            sortedStrikes.map((s) => $marketContext.chain[s].CE),
-            (c) => getWallLen(c.bid_ask?.ask_walls),
-        ),
-    );
 
-    let maxPeTotBid = $derived(
-        getMax(
-            sortedStrikes.map((s) => $marketContext.chain[s].PE),
-            (c) => c.bid_ask?.total_bid_qty || 0,
-        ),
-    );
-    let maxPeTotAsk = $derived(
-        getMax(
-            sortedStrikes.map((s) => $marketContext.chain[s].PE),
-            (c) => c.bid_ask?.total_ask_qty || 0,
-        ),
-    );
+    // REMOVED ALL Max Wall Derivations
+
+    // REMOVED TotBid/TotAsk Max Derivations
+
     let maxPeBestBidQ = $derived(
         getMax(
             sortedStrikes.map((s) => $marketContext.chain[s].PE),
@@ -122,18 +101,8 @@
             (c) => c.bid_ask?.best_ask_qty || 0,
         ),
     );
-    let maxPeBidWall = $derived(
-        getMax(
-            sortedStrikes.map((s) => $marketContext.chain[s].PE),
-            (c) => getWallLen(c.bid_ask?.bid_walls),
-        ),
-    );
-    let maxPeAskWall = $derived(
-        getMax(
-            sortedStrikes.map((s) => $marketContext.chain[s].PE),
-            (c) => getWallLen(c.bid_ask?.ask_walls),
-        ),
-    );
+
+    // REMOVED ALL Max Wall Derivations
 </script>
 
 <div class="pa-table-container">
@@ -150,14 +119,15 @@
                 </tr>
                 <tr class="sub-header">
                     <!-- CE (Mirrored) -->
-                    <th>Tot Bid Qty</th>
-                    <th>Tot Ask Qty</th>
+                    <!-- CE (Mirrored) -->
+                    <th>Ratio</th>
+
                     <th>Best Bid Pr</th>
                     <th>Best Bid Qty</th>
                     <th>Best Ask Pr</th>
                     <th>Best Ask Qty</th>
-                    <th>Bid Wall</th>
-                    <th>Ask Wall</th>
+                    <th>Wall</th>
+
                     <th>Spread</th>
                     <th>Spr Diff</th>
 
@@ -166,14 +136,13 @@
                     <!-- PE (Normal) -->
                     <th>Spr Diff</th>
                     <th>Spread</th>
-                    <th>Ask Wall</th>
-                    <th>Bid Wall</th>
+                    <th>Wall</th>
+
                     <th>Best Ask Qty</th>
                     <th>Best Ask Pr</th>
                     <th>Best Bid Qty</th>
                     <th>Best Bid Pr</th>
-                    <th>Tot Ask Qty</th>
-                    <th>Tot Bid Qty</th>
+                    <th>Ratio</th>
                 </tr>
             </thead>
             <tbody>
@@ -186,22 +155,35 @@
                     {@const ceBA = ceData?.bid_ask}
                     {@const peBA = peData?.bid_ask}
 
+                    {@const ceRatio = getRatio(
+                        ceBA?.total_bid_qty,
+                        ceBA?.total_ask_qty,
+                    )}
+                    {@const peRatio = getRatio(
+                        peBA?.total_bid_qty,
+                        peBA?.total_ask_qty,
+                    )}
+
+                    {@const ceBidWallLen = getWallLen(ceBA?.bid_walls)}
+                    {@const ceAskWallLen = getWallLen(ceBA?.ask_walls)}
+                    {@const peBidWallLen = getWallLen(peBA?.bid_walls)}
+                    {@const peAskWallLen = getWallLen(peBA?.ask_walls)}
+
                     <tr
                         class="data-row"
                         class:atm-row={strike === $marketContext.atmStrike}
                     >
                         <!-- CE SIDE -->
+
                         <td
                             class="cell-qty"
-                            class:bg-green={ceBA?.total_bid_qty ===
-                                maxCeTotBid && maxCeTotBid > 0}
-                            >{fmt(ceBA?.total_bid_qty)}</td
+                            class:bg-green={ceRatio > 1.5}
+                            class:bg-red={ceRatio < 0.7}
+                            class:bg-yellow={ceRatio >= 0.8 && ceRatio <= 1.2}
                         >
-                        <td
-                            class="cell-qty"
-                            class:bg-red={ceBA?.total_ask_qty === maxCeTotAsk &&
-                                maxCeTotAsk > 0}>{fmt(ceBA?.total_ask_qty)}</td
-                        >
+                            {ceRatio.toFixed(2)}
+                        </td>
+
                         <td class="cell-price"
                             >{fmtPrz(ceBA?.best_bid_price)}</td
                         >
@@ -220,18 +202,14 @@
                                 maxCeBestAskQ && maxCeBestAskQ > 0}
                             >{fmt(ceBA?.best_ask_qty)}</td
                         >
+
                         <td
                             class="cell-wall"
-                            class:bg-green={getWallLen(ceBA?.bid_walls) ===
-                                maxCeBidWall && maxCeBidWall > 0}
-                            >{getWallLen(ceBA?.bid_walls)}</td
+                            class:bg-green={ceBidWallLen > ceAskWallLen}
+                            class:bg-red={ceAskWallLen > ceBidWallLen}
                         >
-                        <td
-                            class="cell-wall"
-                            class:bg-red={getWallLen(ceBA?.ask_walls) ===
-                                maxCeAskWall && maxCeAskWall > 0}
-                            >{getWallLen(ceBA?.ask_walls)}</td
-                        >
+                            {ceBidWallLen} / {ceAskWallLen}
+                        </td>
 
                         <!-- Spread Info -->
                         <td
@@ -267,16 +245,12 @@
 
                         <td
                             class="cell-wall"
-                            class:bg-red={getWallLen(peBA?.ask_walls) ===
-                                maxPeAskWall && maxPeAskWall > 0}
-                            >{getWallLen(peBA?.ask_walls)}</td
+                            class:bg-green={peBidWallLen > peAskWallLen}
+                            class:bg-red={peAskWallLen > peBidWallLen}
                         >
-                        <td
-                            class="cell-wall"
-                            class:bg-green={getWallLen(peBA?.bid_walls) ===
-                                maxPeBidWall && maxPeBidWall > 0}
-                            >{getWallLen(peBA?.bid_walls)}</td
-                        >
+                            {peBidWallLen} / {peAskWallLen}
+                        </td>
+
                         <td
                             class="cell-qty"
                             class:bg-red={peBA?.best_ask_qty ===
@@ -295,17 +269,15 @@
                         <td class="cell-price"
                             >{fmtPrz(peBA?.best_bid_price)}</td
                         >
+
                         <td
                             class="cell-qty"
-                            class:bg-red={peBA?.total_ask_qty === maxPeTotAsk &&
-                                maxPeTotAsk > 0}>{fmt(peBA?.total_ask_qty)}</td
+                            class:bg-green={peRatio > 1.5}
+                            class:bg-red={peRatio < 0.7}
+                            class:bg-yellow={peRatio >= 0.8 && peRatio <= 1.2}
                         >
-                        <td
-                            class="cell-qty"
-                            class:bg-green={peBA?.total_bid_qty ===
-                                maxPeTotBid && maxPeTotBid > 0}
-                            >{fmt(peBA?.total_bid_qty)}</td
-                        >
+                            {peRatio.toFixed(2)}
+                        </td>
                     </tr>
                 {/each}
             </tbody>
@@ -434,6 +406,12 @@
     }
     .neg {
         color: #ef4444;
+    }
+
+    .bg-yellow {
+        background-color: rgba(234, 179, 8, 0.15);
+        color: #facc15 !important;
+        font-weight: 600;
     }
 
     .empty-state {
