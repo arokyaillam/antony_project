@@ -15,12 +15,67 @@
         return key;
     }
 
-    // Computed derived state for the table
-    // We iterate over the keys in the filtered store
+    // Derived Straddles
+    // Group subscribed instruments by strike
+    let straddles = $derived.by(() => {
+        const chain = $marketContext.chain;
+        if (!chain) return [];
 
-    // Sort keys for stable display
-    $effect(() => {
-        // console.log("VWAP Store Updated:", $vwapStore);
+        const strikes = Object.keys(chain)
+            .map(Number)
+            .sort((a, b) => a - b);
+        const result = [];
+
+        for (const strike of strikes) {
+            const ceKey = chain[strike].CE;
+            const peKey = chain[strike].PE;
+
+            // Only include if both legs are subscribed/available in vwapStore (or at least we know about them)
+            // Actually, we should check if they are in the current subscription list or vwapStore has data?
+            // Let's rely on marketContext chain which only contains what we fetched.
+            // But checking if we have keys is safer.
+
+            if (ceKey && peKey) {
+                // Get Data
+                const ceData = $vwapStore[ceKey];
+                const peData = $vwapStore[peKey];
+
+                // Ensure we have at least one leg of data to show something,
+                // but for accurate straddle we need both.
+                // If missing, consider value 0 or skip?
+                // Let's show even if partial, but summing undefined is NaN.
+
+                const ceLtp = ceData?.ltp || 0;
+                const peLtp = peData?.ltp || 0;
+                const ceVwap = ceData?.vwap || 0;
+                const peVwap = peData?.vwap || 0;
+                const ceVol = ceData?.volume || 0;
+                const peVol = peData?.volume || 0;
+
+                // Determine moneyness tag (approximate)
+                const atmStub = $marketContext.atmStrike;
+                let tag = "";
+                if (Math.abs(strike - atmStub) < 10)
+                    tag = "ATM"; // Exact or close
+                else if (strike < atmStub) tag = "ITM/OTM";
+                else tag = "OTM/ITM";
+
+                // If we exactly match the ATM strike stored in context
+                if (strike === atmStub) tag = "ATM";
+
+                result.push({
+                    strike,
+                    tag,
+                    ceKey,
+                    peKey,
+                    straddleLtp: ceLtp + peLtp,
+                    straddleVwap: ceVwap + peVwap,
+                    diff: ceLtp + peLtp - (ceVwap + peVwap),
+                    combinedVol: ceVol + peVol,
+                });
+            }
+        }
+        return result;
     });
 </script>
 
@@ -40,9 +95,10 @@
         <IndexSelector />
     </div>
 
-    <div class="data-grid">
+    <div class="grid-layout">
+        <!-- Main Strings Table -->
         <div class="card">
-            <h2>Live VWAP Data</h2>
+            <h2>Individual Legs</h2>
             <div class="table-container">
                 <table>
                     <thead>
@@ -52,7 +108,6 @@
                             <th class="right">VWAP</th>
                             <th class="right">Diff</th>
                             <th class="right">Volume</th>
-                            <th class="right">Time</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -81,18 +136,67 @@
                                 <td class="right"
                                     >{formatNumber(data.volume)}</td
                                 >
-                                <td class="right timestamp">
-                                    {new Date(
-                                        data.timestamp,
-                                    ).toLocaleTimeString()}
-                                </td>
                             </tr>
                         {:else}
                             <tr>
-                                <td colspan="6" class="empty">
-                                    No Data. Connect feed and subscribe to
-                                    instruments.
+                                <td colspan="5" class="empty">No Data</td>
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Straddles Table -->
+        <div class="card">
+            <h2>Straddle VWAP (CE + PE)</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Strike</th>
+                            <th class="right">Straddle LTP</th>
+                            <th class="right">Straddle VWAP</th>
+                            <th class="right">Diff</th>
+                            <th class="right">Comb. Volume</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#each straddles as row (row.strike)}
+                            <tr>
+                                <td class="key">
+                                    <div class="instrument-label">
+                                        {row.strike}
+                                        {#if row.tag === "ATM"}
+                                            <span class="tag atm">ATM</span>
+                                        {/if}
+                                    </div>
+                                    <div class="instrument-key-sub">
+                                        Combined
+                                    </div>
                                 </td>
+                                <td class="right price"
+                                    >{formatCurrency(row.straddleLtp)}</td
+                                >
+                                <td class="right price"
+                                    >{formatCurrency(row.straddleVwap)}</td
+                                >
+                                <td
+                                    class="right diff"
+                                    class:positive={row.diff > 0}
+                                    class:negative={row.diff < 0}
+                                >
+                                    {formatCurrency(row.diff)}
+                                </td>
+                                <td class="right"
+                                    >{formatNumber(row.combinedVol)}</td
+                                >
+                            </tr>
+                        {:else}
+                            <tr>
+                                <td colspan="5" class="empty"
+                                    >No Straddle Data</td
+                                >
                             </tr>
                         {/each}
                     </tbody>
@@ -104,11 +208,19 @@
 
 <style>
     .container {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
         display: flex;
         flex-direction: column;
         gap: 24px;
+        padding-bottom: 50px;
+    }
+
+    .grid-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        align-items: start;
     }
 
     .header {
@@ -162,6 +274,8 @@
         font-size: 18px;
         margin: 0 0 16px 0;
         color: #e5e7eb;
+        border-bottom: 1px solid #333;
+        padding-bottom: 12px;
     }
 
     .table-container {
@@ -194,20 +308,35 @@
     }
 
     .key {
-        font-family: monospace;
-        color: #60a5fa;
+        display: flex;
+        flex-direction: column;
     }
 
     .instrument-label {
         font-weight: 600;
         color: #60a5fa;
-        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .instrument-key-sub {
-        font-size: 11px;
+        font-size: 0.75em;
         color: #6b7280;
         font-family: monospace;
+    }
+
+    .tag {
+        font-size: 0.75em;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #374151;
+        color: #9ca3af;
+    }
+
+    .tag.atm {
+        background: rgba(234, 179, 8, 0.2);
+        color: #facc15;
     }
 
     .price {
@@ -227,8 +356,9 @@
         color: #6b7280;
     }
 
-    .timestamp {
-        color: #6b7280;
-        font-size: 0.9em;
+    @media (max-width: 1000px) {
+        .grid-layout {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
