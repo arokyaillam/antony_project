@@ -2,8 +2,14 @@
 	import "../app.css";
 	import Header from "$lib/components/Header.svelte";
 	import favicon from "$lib/assets/favicon.svg";
+	import { onMount } from "svelte";
+	import { autoSyncVwapWithSubscriptions } from "$lib/stores/vwap";
 
 	let { children } = $props();
+
+	onMount(() => {
+		autoSyncVwapWithSubscriptions();
+	});
 </script>
 
 <svelte:head>

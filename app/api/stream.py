@@ -295,3 +295,52 @@ async def sse_order_stream():
             "X-Accel-Buffering": "no"
         }
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VWAP STREAM SSE - Real-time VWAP Calculation
+# ═══════════════════════════════════════════════════════════════════════════════
+
+async def vwap_generator(instrument_filter: Optional[Set[str]] = None):
+    """
+    VWAP SSE Generator
+    """
+    from app.services.vwap_service import VwapService
+    
+    try:
+        async for data in VwapService.stream_vwap(instrument_filter):
+            yield data
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:
+        yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+
+
+@router.get("/vwap")
+async def sse_vwap_stream(
+    instruments: Optional[str] = Query(
+        None, 
+        description="Comma-separated instrument keys to filter (optional)"
+    )
+):
+    """
+    Real-time VWAP Stream
+    
+    Streams calculated VWAP for instruments based on TBT feed.
+    
+    Formula: VWAP = Σ(Price * Volume) / Σ(Volume)
+    Seeded with broker's ATP at connection time.
+    """
+    instrument_filter: Optional[Set[str]] = None
+    if instruments:
+        instrument_filter = set(instruments.split(","))
+        
+    return StreamingResponse(
+        vwap_generator(instrument_filter),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
